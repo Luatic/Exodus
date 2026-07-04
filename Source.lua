@@ -198,7 +198,7 @@ function Exodus:Init(config)
     stroke(Main, Theme.StrokeDim, 1)
 
     local MainScale = create("UIScale", { Parent = Main, Scale = 1 })
-
+ 
     create("UIGradient", {
         Parent = Main,
         Color = ColorSequence.new({
