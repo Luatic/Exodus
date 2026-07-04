@@ -1273,7 +1273,7 @@ function Exodus:Init(config)
                     o = o or {}
                     local title = o.Name or "Paragraph"
                     local text = o.Text or ""
-
+                
                     local Row = create("Frame", {
                         Parent = RowHolder,
                         BackgroundTransparency = 1,
@@ -1282,25 +1282,43 @@ function Exodus:Init(config)
                     })
                     pad(Row, 8, 0, 0, 0)
                     vlist(Row, 4)
-
-                    create("Frame", {
-                        Parent = Row,
-                        BackgroundColor3 = Highlight,
-                        Position = UDim2.new(0, -8, 0, 1),
-                        Size = UDim2.fromOffset(2, 14),
-                    })
-
-                    create("TextLabel", {
+                
+                    -- Header row: bar + title (horizontal)
+                    local HeaderRow = create("Frame", {
                         Parent = Row,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(1, 0, 0, 14),
+                        Size = UDim2.new(1, 0, 0, 16),
+                        LayoutOrder = 1,
+                    })
+                    create("UIListLayout", {
+                        Parent = HeaderRow,
+                        FillDirection = Enum.FillDirection.Horizontal,
+                        SortOrder = Enum.SortOrder.LayoutOrder,
+                        Padding = UDim.new(0, 6),
+                    })
+                
+                    -- Accent bar (vertical line)
+                    create("Frame", {
+                        Parent = HeaderRow,
+                        BackgroundColor3 = Highlight,
+                        Size = UDim2.fromOffset(2, 14),
+                        LayoutOrder = 1,
+                    })
+                
+                    -- Title (heading) – placed to the right of the bar
+                    create("TextLabel", {
+                        Parent = HeaderRow,
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(1, -8, 1, 0),   -- fills remaining width
                         Font = Enum.Font.GothamBold,
                         Text = title,
                         TextColor3 = Theme.Text,
                         TextSize = 12,
                         TextXAlignment = Enum.TextXAlignment.Left,
-                        LayoutOrder = 1,
+                        LayoutOrder = 2,
                     })
+                
+                    -- Paragraph text (below the header row)
                     create("TextLabel", {
                         Parent = Row,
                         BackgroundTransparency = 1,
@@ -1315,7 +1333,7 @@ function Exodus:Init(config)
                         TextYAlignment = Enum.TextYAlignment.Top,
                         LayoutOrder = 2,
                     })
-
+                
                     registerSearch(Row, title)
                     return { Row = Row }
                 end
