@@ -4,7 +4,6 @@ Exodus.__index = Exodus
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
@@ -18,7 +17,6 @@ local Theme = {
 	Text = Color3.fromRGB(240, 240, 240),
 	SubText = Color3.fromRGB(150, 150, 150),
 	Accent = Color3.fromRGB(255, 255, 255),
-	AccentDim = Color3.fromRGB(90, 90, 90),
 	Off = Color3.fromRGB(35, 35, 35),
 }
 
@@ -68,14 +66,13 @@ local function pad(parent, l, r, t, b)
 	})
 end
 
-local function listLayout(parent, dir, gap, hAlign, vAlign)
+local function vlist(parent, gap, hAlign)
 	return create("UIListLayout", {
 		Parent = parent,
-		FillDirection = dir or Enum.FillDirection.Vertical,
+		FillDirection = Enum.FillDirection.Vertical,
 		Padding = UDim.new(0, gap or 6),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = hAlign or Enum.HorizontalAlignment.Left,
-		VerticalAlignment = vAlign or Enum.VerticalAlignment.Top,
 	})
 end
 
@@ -110,6 +107,46 @@ local function getAvatar(userId)
 	return "rbxthumb://type=AvatarHeadShot&id=" .. tostring(userId) .. "&w=100&h=100"
 end
 
+local function twoColGroup(parent, gap)
+	local Row = create("Frame", {
+		Parent = parent,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = 2,
+	})
+	create("UIListLayout", {
+		Parent = Row,
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, gap),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	})
+	local ColA = create("Frame", {
+		Parent = Row,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0.5, -gap / 2, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+	})
+	vlist(ColA, gap)
+	local ColB = create("Frame", {
+		Parent = Row,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0.5, -gap / 2, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+	})
+	vlist(ColB, gap)
+	local count = 0
+	local function nextColumn()
+		count += 1
+		if count % 2 == 1 then
+			return ColA
+		else
+			return ColB
+		end
+	end
+	return Row, nextColumn
+end
+
 function Exodus:Init(config)
 	config = config or {}
 
@@ -129,8 +166,8 @@ function Exodus:Init(config)
 		Parent = CoreGui,
 	})
 
-	local baseWidth, baseHeight = 620, 400
-	local minWidth, minHeight = 480, 320
+	local baseWidth, baseHeight = 680, 440
+	local minWidth, minHeight = 520, 340
 
 	local Main = create("Frame", {
 		Name = "Main",
@@ -142,7 +179,9 @@ function Exodus:Init(config)
 		ClipsDescendants = true,
 	})
 	corner(Main, 12)
-	local mainStroke = stroke(Main, Theme.StrokeDim, 1)
+	stroke(Main, Theme.StrokeDim, 1)
+
+	local MainScale = create("UIScale", { Parent = Main, Scale = 1 })
 
 	create("UIGradient", {
 		Parent = Main,
@@ -151,20 +190,6 @@ function Exodus:Init(config)
 			ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 6, 6)),
 		}),
 		Rotation = 90,
-	})
-
-	local Shadow = create("ImageLabel", {
-		Parent = Main,
-		BackgroundTransparency = 1,
-		Image = "rbxassetid://1316045217",
-		ImageColor3 = Color3.fromRGB(0, 0, 0),
-		ImageTransparency = 0.4,
-		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = Rect.new(10, 10, 118, 118),
-		Size = UDim2.new(1, 60, 1, 60),
-		Position = UDim2.new(0.5, 0, 0.5, 0),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		ZIndex = -1,
 	})
 
 	local TopBar = create("Frame", {
@@ -234,7 +259,7 @@ function Exodus:Init(config)
 		Size = UDim2.new(1, 0, 1, -42),
 	})
 
-	local sidebarWidth = 160
+	local sidebarWidth = 190
 
 	local Sidebar = create("Frame", {
 		Name = "Sidebar",
@@ -254,8 +279,8 @@ function Exodus:Init(config)
 	local SearchHolder = create("Frame", {
 		Parent = Sidebar,
 		BackgroundColor3 = Theme.Elevated,
-		Position = UDim2.new(0, 8, 0, 10),
-		Size = UDim2.new(1, -16, 0, 30),
+		Position = UDim2.new(0, 10, 0, 10),
+		Size = UDim2.new(1, -20, 0, 30),
 	})
 	corner(SearchHolder, 8)
 	local searchStroke = stroke(SearchHolder, Theme.StrokeDim, 1)
@@ -287,14 +312,15 @@ function Exodus:Init(config)
 		Parent = Sidebar,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.new(0, 6, 0, 50),
-		Size = UDim2.new(1, -12, 1, -58),
+		Position = UDim2.new(0, 8, 0, 50),
+		Size = UDim2.new(1, -16, 1, -58),
 		ScrollBarThickness = 2,
 		ScrollBarImageColor3 = Theme.StrokeDim,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	})
-	listLayout(TabList, Enum.FillDirection.Vertical, 4)
+	pad(TabList, 4, 4, 2, 2)
+	vlist(TabList, 4)
 
 	local ContentHolder = create("Frame", {
 		Name = "ContentHolder",
@@ -309,10 +335,10 @@ function Exodus:Init(config)
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, 0, 1, 0),
-		Size = UDim2.fromOffset(16, 16),
+		Size = UDim2.fromOffset(18, 18),
 		ZIndex = 20,
 	})
-	local ResizeIcon = create("TextLabel", {
+	create("TextLabel", {
 		Parent = ResizeGrip,
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
@@ -366,17 +392,20 @@ function Exodus:Init(config)
 	end)
 
 	local minimized = false
-	local expandedSize = Main.Size
 
 	local function setMinimized(state)
 		minimized = state
 		if state then
-			expandedSize = Main.Size
-			tween(Main, { Size = UDim2.fromOffset(Main.Size.X.Offset, 42) }, 0.35, Enum.EasingStyle.Quint)
-			Body.Visible = false
+			local t = tween(MainScale, { Scale = 0.001 }, 0.22, Enum.EasingStyle.Quint)
+			t.Completed:Connect(function()
+				if minimized then
+					Main.Visible = false
+				end
+			end)
 		else
-			Body.Visible = true
-			tween(Main, { Size = expandedSize }, 0.35, Enum.EasingStyle.Quint)
+			Main.Visible = true
+			MainScale.Scale = 0.001
+			tween(MainScale, { Scale = 1 }, 0.28, Enum.EasingStyle.Back)
 		end
 	end
 
@@ -395,6 +424,8 @@ function Exodus:Init(config)
 	Window._searchIndex = {}
 	Window._activeTab = nil
 
+	local SectionRow, nextSectionColumn = twoColGroup(nil, 12)
+
 	local function applySearch(query)
 		query = query:lower()
 		for _, entry in ipairs(Window._searchIndex) do
@@ -402,22 +433,16 @@ function Exodus:Init(config)
 			entry.frame.Visible = visible
 		end
 		for _, tabData in pairs(Window._tabs) do
-			if query ~= "" then
-				local anyVisible = false
-				for _, sec in ipairs(tabData.sections) do
+			for _, sec in ipairs(tabData.sections) do
+				if query ~= "" then
 					local sectionHasVisible = false
 					for _, entry in ipairs(sec.entries) do
 						if entry.frame.Visible then
 							sectionHasVisible = true
-							anyVisible = true
 						end
 					end
 					sec.frame.Visible = sectionHasVisible
-				end
-				if anyVisible and tabData.page ~= Window._activeTab then
-				end
-			else
-				for _, sec in ipairs(tabData.sections) do
+				else
 					sec.frame.Visible = true
 				end
 			end
@@ -432,6 +457,7 @@ function Exodus:Init(config)
 		opts = opts or {}
 		local tabName = opts.Name or "Tab"
 		local tabIcon = opts.Icon
+		local order = #Window._tabs + 1
 
 		local TabButton = create("TextButton", {
 			Parent = TabList,
@@ -440,6 +466,7 @@ function Exodus:Init(config)
 			AutoButtonColor = false,
 			Size = UDim2.new(1, 0, 0, 34),
 			Text = "",
+			LayoutOrder = order * 2 - 1,
 		})
 		corner(TabButton, 8)
 		local tabButtonStroke = stroke(TabButton, Theme.StrokeDim, 1, 1)
@@ -458,13 +485,44 @@ function Exodus:Init(config)
 			Parent = TabButton,
 			BackgroundTransparency = 1,
 			Position = UDim2.new(0, tabIcon and 36 or 14, 0, 0),
-			Size = UDim2.new(1, -(tabIcon and 44 or 20), 1, 0),
+			Size = UDim2.new(1, -(tabIcon and 60 or 40), 1, 0),
 			Font = Enum.Font.GothamMedium,
 			Text = tabName,
 			TextColor3 = Theme.SubText,
 			TextSize = 13,
 			TextXAlignment = Enum.TextXAlignment.Left,
 		})
+
+		local Chevron = create("TextButton", {
+			Parent = TabButton,
+			BackgroundTransparency = 1,
+			AutoButtonColor = false,
+			Position = UDim2.new(1, -26, 0, 0),
+			Size = UDim2.new(0, 26, 1, 0),
+			Font = Enum.Font.GothamBold,
+			Text = "+",
+			TextColor3 = Theme.SubText,
+			TextSize = 14,
+		})
+
+		local SubList = create("Frame", {
+			Parent = TabList,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			Size = UDim2.new(1, 0, 0, 0),
+			LayoutOrder = order * 2,
+		})
+
+		local SubInner = create("Frame", {
+			Parent = SubList,
+			BackgroundTransparency = 1,
+			Position = UDim2.new(0, 0, 0, 0),
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+		})
+		pad(SubInner, 16, 4, 4, 0)
+		vlist(SubInner, 2)
 
 		local Page = create("ScrollingFrame", {
 			Parent = ContentHolder,
@@ -478,9 +536,32 @@ function Exodus:Init(config)
 			Visible = false,
 		})
 		pad(Page, 14, 14, 14, 14)
-		listLayout(Page, Enum.FillDirection.Vertical, 12)
 
-		local tabData = { button = TabButton, page = Page, sections = {}, nameLabel = NameLabel, iconLabel = IconLabel, stroke = tabButtonStroke }
+		local PageRow, nextPageColumn = twoColGroup(Page, 12)
+
+		local expanded = false
+		local function refreshSubHeight()
+			if expanded then
+				tween(SubList, { Size = UDim2.new(1, 0, 0, SubInner.AbsoluteSize.Y) }, 0.2)
+			end
+		end
+		SubInner:GetPropertyChangedSignal("AbsoluteSize"):Connect(refreshSubHeight)
+
+		local function setExpanded(state)
+			expanded = state
+			Chevron.Text = state and "-" or "+"
+			if state then
+				tween(SubList, { Size = UDim2.new(1, 0, 0, SubInner.AbsoluteSize.Y) }, 0.22)
+			else
+				tween(SubList, { Size = UDim2.new(1, 0, 0, 0) }, 0.22)
+			end
+		end
+
+		Chevron.MouseButton1Click:Connect(function()
+			setExpanded(not expanded)
+		end)
+
+		local tabData = { button = TabButton, page = Page, sections = {}, nameLabel = NameLabel, iconLabel = IconLabel, stroke = tabButtonStroke, subInner = SubInner }
 		Window._tabs[tabName] = tabData
 
 		local function selectTab()
@@ -496,10 +577,13 @@ function Exodus:Init(config)
 			Page.Visible = true
 			Window._activeTab = Page
 			tween(TabButton, { BackgroundTransparency = 0.85 }, 0.2)
-			tween(tabButtonStroke, { Transparency = 0.6 }, 0.2)
+			tween(tabButtonStroke, { Transparency = 0.55 }, 0.2)
 			tween(NameLabel, { TextColor3 = Theme.Text }, 0.2)
 			if tabIcon then
 				tween(IconLabel, { ImageColor3 = Theme.Text }, 0.2)
+			end
+			if not expanded then
+				setExpanded(true)
 			end
 		end
 
@@ -513,7 +597,7 @@ function Exodus:Init(config)
 			tween(TabButton, { BackgroundTransparency = 1 }, 0.15)
 		end)
 
-		if next(Window._tabs) == tabName or Window._activeTab == nil then
+		if order == 1 then
 			selectTab()
 		end
 
@@ -523,49 +607,64 @@ function Exodus:Init(config)
 			sectionOpts = sectionOpts or {}
 			local sectionName = sectionOpts.Name or "Section"
 
+			local parentColumn = nextPageColumn()
+
 			local SectionFrame = create("Frame", {
-				Parent = Page,
+				Parent = parentColumn,
 				BackgroundColor3 = Theme.Panel,
 				BorderSizePixel = 0,
-				Size = UDim2.new(1, 0, 0, 40),
+				Size = UDim2.new(1, 0, 0, 0),
 				AutomaticSize = Enum.AutomaticSize.Y,
-				LayoutOrder = #tabData.sections + 1,
 			})
 			corner(SectionFrame, 10)
 			stroke(SectionFrame, Theme.StrokeDim, 1)
 			pad(SectionFrame, 12, 12, 10, 12)
+			vlist(SectionFrame, 10)
 
 			create("TextLabel", {
 				Parent = SectionFrame,
 				BackgroundTransparency = 1,
-				Size = UDim2.new(1, 0, 0, 18),
+				Size = UDim2.new(1, 0, 0, 16),
 				Font = Enum.Font.GothamBold,
 				Text = sectionName,
 				TextColor3 = Theme.Text,
 				TextSize = 13,
 				TextXAlignment = Enum.TextXAlignment.Left,
+				LayoutOrder = 1,
 			})
 
-			local Grid = create("Frame", {
-				Parent = SectionFrame,
+			local _, nextElemColumn = twoColGroup(SectionFrame, 8)
+
+			local SubItemBtn = create("TextButton", {
+				Parent = SubInner,
 				BackgroundTransparency = 1,
-				Position = UDim2.new(0, 0, 0, 26),
-				Size = UDim2.new(1, 0, 0, 0),
-				AutomaticSize = Enum.AutomaticSize.Y,
+				AutoButtonColor = false,
+				Size = UDim2.new(1, 0, 0, 20),
+				Font = Enum.Font.Gotham,
+				Text = sectionName,
+				TextColor3 = Theme.SubText,
+				TextSize = 12,
+				TextXAlignment = Enum.TextXAlignment.Left,
 			})
-			create("UIGridLayout", {
-				Parent = Grid,
-				CellPadding = UDim2.fromOffset(8, 8),
-				CellSize = UDim2.new(0.5, -4, 0, 36),
-				FillDirectionMaxCells = 2,
-				SortOrder = Enum.SortOrder.LayoutOrder,
-			})
+			SubItemBtn.MouseEnter:Connect(function()
+				tween(SubItemBtn, { TextColor3 = Theme.Text }, 0.15)
+			end)
+			SubItemBtn.MouseLeave:Connect(function()
+				tween(SubItemBtn, { TextColor3 = Theme.SubText }, 0.15)
+			end)
+			SubItemBtn.MouseButton1Click:Connect(function()
+				if not Page.Visible then
+					selectTab()
+				end
+				task.wait()
+				local targetY = SectionFrame.AbsolutePosition.Y - Page.AbsolutePosition.Y + Page.CanvasPosition.Y - 10
+				tween(Page, { CanvasPosition = Vector2.new(0, math.max(0, targetY)) }, 0.3)
+			end)
 
 			local sectionData = { frame = SectionFrame, entries = {} }
 			table.insert(tabData.sections, sectionData)
 
 			local SectionAPI = {}
-			local orderCounter = 0
 
 			local function registerSearch(frame, text)
 				table.insert(Window._searchIndex, { frame = frame, text = text })
@@ -573,18 +672,15 @@ function Exodus:Init(config)
 			end
 
 			local function newCell(height)
-				orderCounter += 1
+				local col = nextElemColumn()
 				local Cell = create("Frame", {
-					Parent = Grid,
+					Parent = col,
 					BackgroundColor3 = Theme.Elevated,
 					BorderSizePixel = 0,
-					LayoutOrder = orderCounter,
+					Size = UDim2.new(1, 0, 0, height or 38),
 				})
 				corner(Cell, 8)
 				stroke(Cell, Theme.StrokeDim, 1)
-				if height then
-					Grid.UIGridLayout.CellSize = UDim2.new(0.5, -4, 0, height)
-				end
 				return Cell
 			end
 
@@ -593,7 +689,7 @@ function Exodus:Init(config)
 				local label = o.Name or "Button"
 				local callback = o.Callback or function() end
 
-				local Cell = newCell(36)
+				local Cell = newCell(38)
 				local Btn = create("TextButton", {
 					Parent = Cell,
 					BackgroundTransparency = 1,
@@ -622,10 +718,6 @@ function Exodus:Init(config)
 				end)
 				Btn.MouseButton1Down:Connect(function(x, y)
 					ripple(Btn, x, y)
-					tween(Cell, { Size = UDim2.new(Cell.Size.X.Scale, Cell.Size.X.Offset - 2, Cell.Size.Y.Scale, Cell.Size.Y.Offset - 2) }, 0.1)
-				end)
-				Btn.MouseButton1Up:Connect(function()
-					tween(Cell, { Size = UDim2.new(Cell.Size.X.Scale, Cell.Size.X.Offset + 2, Cell.Size.Y.Scale, Cell.Size.Y.Offset + 2) }, 0.1)
 				end)
 				Btn.MouseButton1Click:Connect(function()
 					task.spawn(callback)
@@ -642,7 +734,7 @@ function Exodus:Init(config)
 				local callback = o.Callback or function() end
 				local state = default
 
-				local Cell = newCell(36)
+				local Cell = newCell(38)
 				create("TextLabel", {
 					Parent = Cell,
 					BackgroundTransparency = 1,
@@ -658,7 +750,8 @@ function Exodus:Init(config)
 				local SwitchBG = create("Frame", {
 					Parent = Cell,
 					BackgroundColor3 = state and Highlight or Theme.Off,
-					Position = UDim2.new(1, -42, 0.5, -10),
+					AnchorPoint = Vector2.new(1, 0.5),
+					Position = UDim2.new(1, -10, 0.5, 0),
 					Size = UDim2.fromOffset(32, 20),
 				})
 				corner(SwitchBG, 999)
@@ -706,12 +799,12 @@ function Exodus:Init(config)
 				local placeholder = o.Placeholder or "..."
 				local callback = o.Callback or function() end
 
-				local Cell = newCell(36)
+				local Cell = newCell(58)
 				create("TextLabel", {
 					Parent = Cell,
 					BackgroundTransparency = 1,
-					Position = UDim2.new(0, 10, 0, 4),
-					Size = UDim2.new(0.45, 0, 0, 14),
+					Position = UDim2.new(0, 10, 0, 8),
+					Size = UDim2.new(1, -20, 0, 14),
 					Font = Enum.Font.GothamMedium,
 					Text = label,
 					TextColor3 = Theme.SubText,
@@ -722,8 +815,8 @@ function Exodus:Init(config)
 				local InputBG = create("Frame", {
 					Parent = Cell,
 					BackgroundColor3 = Theme.Off,
-					Position = UDim2.new(0, 10, 1, -22),
-					Size = UDim2.new(1, -20, 0, 18),
+					Position = UDim2.new(0, 10, 0, 28),
+					Size = UDim2.new(1, -20, 0, 22),
 				})
 				corner(InputBG, 6)
 				local inputStroke = stroke(InputBG, Theme.StrokeDim, 1)
@@ -731,8 +824,8 @@ function Exodus:Init(config)
 				local Box = create("TextBox", {
 					Parent = InputBG,
 					BackgroundTransparency = 1,
-					Position = UDim2.new(0, 6, 0, 0),
-					Size = UDim2.new(1, -12, 1, 0),
+					Position = UDim2.new(0, 8, 0, 0),
+					Size = UDim2.new(1, -16, 1, 0),
 					Font = Enum.Font.Gotham,
 					PlaceholderText = placeholder,
 					PlaceholderColor3 = Theme.SubText,
@@ -740,13 +833,15 @@ function Exodus:Init(config)
 					TextColor3 = Theme.Text,
 					TextSize = 12,
 					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Center,
 					ClearTextOnFocus = false,
+					ClipsDescendants = true,
 				})
 
 				Box.Focused:Connect(function()
 					tween(inputStroke, { Color = Highlight }, 0.2)
 				end)
-				Box.FocusLost:Connect(function(enter)
+				Box.FocusLost:Connect(function()
 					tween(inputStroke, { Color = Theme.StrokeDim }, 0.2)
 					task.spawn(callback, Box.Text)
 				end)
@@ -764,11 +859,11 @@ function Exodus:Init(config)
 				local callback = o.Callback or function() end
 				local value = default
 
-				local Cell = newCell(44)
-				local Label = create("TextLabel", {
+				local Cell = newCell(54)
+				create("TextLabel", {
 					Parent = Cell,
 					BackgroundTransparency = 1,
-					Position = UDim2.new(0, 10, 0, 4),
+					Position = UDim2.new(0, 10, 0, 8),
 					Size = UDim2.new(0.6, 0, 0, 14),
 					Font = Enum.Font.GothamMedium,
 					Text = label,
@@ -779,7 +874,7 @@ function Exodus:Init(config)
 				local ValueLabel = create("TextLabel", {
 					Parent = Cell,
 					BackgroundTransparency = 1,
-					Position = UDim2.new(1, -50, 0, 4),
+					Position = UDim2.new(1, -50, 0, 8),
 					Size = UDim2.new(0, 40, 0, 14),
 					Font = Enum.Font.GothamBold,
 					Text = tostring(value),
@@ -791,7 +886,7 @@ function Exodus:Init(config)
 				local Track = create("Frame", {
 					Parent = Cell,
 					BackgroundColor3 = Theme.Off,
-					Position = UDim2.new(0, 10, 1, -16),
+					Position = UDim2.new(0, 10, 0, 34),
 					Size = UDim2.new(1, -20, 0, 6),
 				})
 				corner(Track, 999)
@@ -860,26 +955,34 @@ function Exodus:Init(config)
 				local title = o.Name or "Paragraph"
 				local text = o.Text or ""
 
-				local Cell = newCell(60)
-				Grid.UIGridLayout.CellSize = UDim2.new(1, 0, 0, 60)
-				Cell.Size = UDim2.new(1, 0, 0, 60)
+				local Cell = create("Frame", {
+					Parent = nextElemColumn(),
+					BackgroundColor3 = Theme.Elevated,
+					BorderSizePixel = 0,
+					Size = UDim2.new(1, 0, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.Y,
+				})
+				corner(Cell, 8)
+				stroke(Cell, Theme.StrokeDim, 1)
+				pad(Cell, 10, 10, 8, 8)
+				vlist(Cell, 4)
 
 				create("TextLabel", {
 					Parent = Cell,
 					BackgroundTransparency = 1,
-					Position = UDim2.new(0, 10, 0, 6),
-					Size = UDim2.new(1, -20, 0, 16),
+					Size = UDim2.new(1, 0, 0, 16),
 					Font = Enum.Font.GothamBold,
 					Text = title,
 					TextColor3 = Theme.Text,
 					TextSize = 13,
 					TextXAlignment = Enum.TextXAlignment.Left,
+					LayoutOrder = 1,
 				})
 				create("TextLabel", {
 					Parent = Cell,
 					BackgroundTransparency = 1,
-					Position = UDim2.new(0, 10, 0, 24),
-					Size = UDim2.new(1, -20, 0, 30),
+					Size = UDim2.new(1, 0, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.Y,
 					Font = Enum.Font.Gotham,
 					Text = text,
 					TextColor3 = Theme.SubText,
@@ -887,6 +990,7 @@ function Exodus:Init(config)
 					TextWrapped = true,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					TextYAlignment = Enum.TextYAlignment.Top,
+					LayoutOrder = 2,
 				})
 
 				registerSearch(Cell, title)
@@ -901,7 +1005,7 @@ function Exodus:Init(config)
 				local currentKey = default
 				local listening = false
 
-				local Cell = newCell(36)
+				local Cell = newCell(38)
 				create("TextLabel", {
 					Parent = Cell,
 					BackgroundTransparency = 1,
@@ -918,7 +1022,8 @@ function Exodus:Init(config)
 					Parent = Cell,
 					BackgroundColor3 = Theme.Off,
 					AutoButtonColor = false,
-					Position = UDim2.new(1, -74, 0.5, -12),
+					AnchorPoint = Vector2.new(1, 0.5),
+					Position = UDim2.new(1, -10, 0.5, 0),
 					Size = UDim2.fromOffset(64, 24),
 					Font = Enum.Font.GothamBold,
 					Text = currentKey.Name,
@@ -956,7 +1061,7 @@ function Exodus:Init(config)
 				local callback = o.Callback or function() end
 				local current = default
 
-				local Cell = newCell(36)
+				local Cell = newCell(38)
 				create("TextLabel", {
 					Parent = Cell,
 					BackgroundTransparency = 1,
@@ -973,7 +1078,8 @@ function Exodus:Init(config)
 					Parent = Cell,
 					BackgroundColor3 = current,
 					AutoButtonColor = false,
-					Position = UDim2.new(1, -38, 0.5, -12),
+					AnchorPoint = Vector2.new(1, 0.5),
+					Position = UDim2.new(1, -10, 0.5, 0),
 					Size = UDim2.fromOffset(24, 24),
 					Text = "",
 				})
@@ -984,16 +1090,28 @@ function Exodus:Init(config)
 					Parent = ScreenGui,
 					BackgroundColor3 = Theme.Panel,
 					BorderSizePixel = 0,
-					Size = UDim2.fromOffset(160, 140),
+					Size = UDim2.fromOffset(180, 168),
 					Visible = false,
-					ZIndex = 100,
+					ZIndex = 200,
 				})
 				corner(Popup, 10)
 				stroke(Popup, Theme.StrokeDim, 1)
-				pad(Popup, 10, 10, 10, 10)
+				pad(Popup, 12, 12, 12, 12)
+				vlist(Popup, 8)
+
+				local Preview = create("Frame", {
+					Parent = Popup,
+					BackgroundColor3 = current,
+					Size = UDim2.new(1, 0, 0, 28),
+					LayoutOrder = 0,
+				})
+				corner(Preview, 6)
+				stroke(Preview, Theme.StrokeDim, 1)
+
+				local r, g, b = current.R * 255, current.G * 255, current.B * 255
 
 				local function makeChannel(name, order, initial)
-					local Row = create("Frame", { Parent = Popup, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 30), LayoutOrder = order })
+					local Row = create("Frame", { Parent = Popup, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 26), LayoutOrder = order })
 					create("TextLabel", {
 						Parent = Row,
 						BackgroundTransparency = 1,
@@ -1006,102 +1124,117 @@ function Exodus:Init(config)
 					local Track = create("Frame", {
 						Parent = Row,
 						BackgroundColor3 = Theme.Off,
-						Position = UDim2.new(0, 20, 0.5, -3),
-						Size = UDim2.new(1, -20, 0, 6),
+						AnchorPoint = Vector2.new(0, 0.5),
+						Position = UDim2.new(0, 22, 0.5, 0),
+						Size = UDim2.new(1, -22, 0, 6),
 					})
 					corner(Track, 999)
+					stroke(Track, Theme.StrokeDim, 1)
 					local Fill = create("Frame", { Parent = Track, BackgroundColor3 = Highlight, Size = UDim2.new(initial / 255, 0, 1, 0) })
 					corner(Fill, 999)
-					return Track, Fill
+					local Knob = create("Frame", {
+						Parent = Track,
+						BackgroundColor3 = Color3.fromRGB(240, 240, 240),
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.new(initial / 255, 0, 0.5, 0),
+						Size = UDim2.fromOffset(12, 12),
+						ZIndex = 5,
+					})
+					corner(Knob, 999)
+					stroke(Knob, Theme.StrokeDim, 1)
+					return Track, Fill, Knob
 				end
 
-				create("UIListLayout", { Parent = Popup, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder })
-
-				local r, g, b = current.R * 255, current.G * 255, current.B * 255
-				local RTrack, RFill = makeChannel("R", 1, r)
-				local GTrack, GFill = makeChannel("G", 2, g)
-				local BTrack, BFill = makeChannel("B", 3, b)
+				local RTrack, RFill, RKnob = makeChannel("R", 1, r)
+				local GTrack, GFill, GKnob = makeChannel("G", 2, g)
+				local BTrack, BFill, BKnob = makeChannel("B", 3, b)
 
 				local function updateColor()
-					current = Color3.fromRGB(r, g, b)
+					current = Color3.fromRGB(math.floor(r), math.floor(g), math.floor(b))
 					Swatch.BackgroundColor3 = current
+					Preview.BackgroundColor3 = current
 					task.spawn(callback, current)
 				end
 
-				local function bindChannel(track, fill, getSet)
+				local function bindChannel(track, fill, knob, setVal)
 					local dragC = false
+					local function apply(inputPos)
+						local alpha = math.clamp((inputPos.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+						fill.Size = UDim2.new(alpha, 0, 1, 0)
+						knob.Position = UDim2.new(alpha, 0, 0.5, 0)
+						setVal(alpha * 255)
+						updateColor()
+					end
 					track.InputBegan:Connect(function(input)
-						if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 							dragC = true
-							local alpha = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-							fill.Size = UDim2.new(alpha, 0, 1, 0)
-							getSet(alpha * 255)
-							updateColor()
+							apply(input.Position)
 						end
 					end)
 					UIS.InputChanged:Connect(function(input)
-						if dragC and input.UserInputType == Enum.UserInputType.MouseMovement then
-							local alpha = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-							fill.Size = UDim2.new(alpha, 0, 1, 0)
-							getSet(alpha * 255)
-							updateColor()
+						if dragC and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+							apply(input.Position)
 						end
 					end)
 					UIS.InputEnded:Connect(function(input)
-						if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 							dragC = false
 						end
 					end)
 				end
 
-				bindChannel(RTrack, RFill, function(v) r = v end)
-				bindChannel(GTrack, GFill, function(v) g = v end)
-				bindChannel(BTrack, BFill, function(v) b = v end)
+				bindChannel(RTrack, RFill, RKnob, function(v) r = v end)
+				bindChannel(GTrack, GFill, GKnob, function(v) g = v end)
+				bindChannel(BTrack, BFill, BKnob, function(v) b = v end)
+
+				local Blocker = nil
+				local function closePopup()
+					Popup.Visible = false
+					if Blocker then
+						Blocker:Destroy()
+						Blocker = nil
+					end
+				end
 
 				Swatch.MouseButton1Click:Connect(function()
-					Popup.Visible = not Popup.Visible
 					if Popup.Visible then
-						Popup.Position = UDim2.fromOffset(Swatch.AbsolutePosition.X - 130, Swatch.AbsolutePosition.Y)
+						closePopup()
+						return
 					end
+					local pos = Swatch.AbsolutePosition
+					local screenSize = ScreenGui.AbsoluteSize
+					local px = math.clamp(pos.X - 190, 4, screenSize.X - 184)
+					local py = math.clamp(pos.Y - 20, 4, screenSize.Y - 172)
+					Popup.Position = UDim2.fromOffset(px, py)
+					Popup.Visible = true
+					Blocker = create("TextButton", {
+						Parent = ScreenGui,
+						BackgroundTransparency = 1,
+						Size = UDim2.fromScale(1, 1),
+						Text = "",
+						ZIndex = 190,
+						AutoButtonColor = false,
+					})
+					Blocker.MouseButton1Click:Connect(closePopup)
 				end)
 
 				registerSearch(Cell, label)
 				return { Cell = Cell }
 			end
 
-			function SectionAPI:Dropdown(o)
-				o = o or {}
-				local label = o.Name or "Dropdown"
-				local options = o.Options or {}
-				local default = o.Default
-				local callback = o.Callback or function() end
-				local current = default
-
-				local Cell = newCell(36)
-				Cell.ClipsDescendants = false
-				create("TextLabel", {
-					Parent = Cell,
-					BackgroundTransparency = 1,
-					Position = UDim2.new(0, 10, 0, 4),
-					Size = UDim2.new(0.5, 0, 0, 14),
-					Font = Enum.Font.GothamMedium,
-					Text = label,
-					TextColor3 = Theme.SubText,
-					TextSize = 11,
-					TextXAlignment = Enum.TextXAlignment.Left,
-				})
-
+			local function styledDropdownList(Cell, label, options, isMulti, callback)
 				local Selector = create("TextButton", {
 					Parent = Cell,
 					BackgroundColor3 = Theme.Off,
 					AutoButtonColor = false,
-					Position = UDim2.new(0, 10, 1, -22),
-					Size = UDim2.new(1, -20, 0, 18),
+					Position = UDim2.new(0, 10, 0, 28),
+					Size = UDim2.new(1, -20, 0, 22),
 					Font = Enum.Font.Gotham,
-					Text = "  " .. tostring(current or "Select..."),
+					Text = isMulti and "  None selected" or "  Select...",
 					TextColor3 = Theme.Text,
 					TextSize = 12,
 					TextXAlignment = Enum.TextXAlignment.Left,
+					ClipsDescendants = true,
 				})
 				corner(Selector, 6)
 				local selectorStroke = stroke(Selector, Theme.StrokeDim, 1)
@@ -1110,7 +1243,7 @@ function Exodus:Init(config)
 					Parent = Cell,
 					BackgroundColor3 = Theme.Elevated,
 					BorderSizePixel = 0,
-					Position = UDim2.new(0, 10, 1, 2),
+					Position = UDim2.new(0, 10, 0, 52),
 					Size = UDim2.new(1, -20, 0, 0),
 					ClipsDescendants = true,
 					ZIndex = 30,
@@ -1118,10 +1251,13 @@ function Exodus:Init(config)
 				})
 				corner(ListFrame, 6)
 				stroke(ListFrame, Theme.StrokeDim, 1)
-				listLayout(ListFrame, Enum.FillDirection.Vertical, 2)
+				vlist(ListFrame, 2)
 				pad(ListFrame, 4, 4, 4, 4)
 
 				local open = false
+				local optionButtons = {}
+				local selected = {}
+
 				local function close()
 					open = false
 					tween(ListFrame, { Size = UDim2.new(1, -20, 0, 0) }, 0.2)
@@ -1136,17 +1272,30 @@ function Exodus:Init(config)
 				local function openList()
 					open = true
 					ListFrame.Visible = true
-					local h = math.min(#options * 22 + 8, 140)
+					local h = math.min(#options * 24 + 8, 140)
 					tween(ListFrame, { Size = UDim2.new(1, -20, 0, h) }, 0.2)
 					tween(selectorStroke, { Color = Highlight }, 0.2)
+				end
+
+				local function refreshLabel()
+					if isMulti then
+						local names = {}
+						for _, n in ipairs(options) do
+							if selected[n] then
+								table.insert(names, n)
+							end
+						end
+						Selector.Text = #names == 0 and "  None selected" or ("  " .. table.concat(names, ", "))
+					end
 				end
 
 				for i, optName in ipairs(options) do
 					local OptBtn = create("TextButton", {
 						Parent = ListFrame,
+						BackgroundColor3 = Theme.Off,
 						BackgroundTransparency = 1,
 						AutoButtonColor = false,
-						Size = UDim2.new(1, 0, 0, 20),
+						Size = UDim2.new(1, 0, 0, 22),
 						Font = Enum.Font.Gotham,
 						Text = "  " .. optName,
 						TextColor3 = Theme.SubText,
@@ -1154,24 +1303,82 @@ function Exodus:Init(config)
 						TextXAlignment = Enum.TextXAlignment.Left,
 						LayoutOrder = i,
 					})
-					corner(OptBtn, 4)
+					corner(OptBtn, 5)
+					optionButtons[optName] = OptBtn
+
 					OptBtn.MouseEnter:Connect(function()
-						tween(OptBtn, { BackgroundTransparency = 0.9, TextColor3 = Theme.Text }, 0.15)
+						if not selected[optName] then
+							tween(OptBtn, { BackgroundTransparency = 0.85 }, 0.15)
+						end
 					end)
 					OptBtn.MouseLeave:Connect(function()
-						tween(OptBtn, { BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
+						if not selected[optName] then
+							tween(OptBtn, { BackgroundTransparency = 1 }, 0.15)
+						end
 					end)
+
 					OptBtn.MouseButton1Click:Connect(function()
-						current = optName
-						Selector.Text = "  " .. optName
-						close()
-						task.spawn(callback, optName)
+						if isMulti then
+							selected[optName] = not selected[optName] or nil
+							if selected[optName] then
+								tween(OptBtn, { BackgroundTransparency = 0, BackgroundColor3 = Highlight }, 0.15)
+								tween(OptBtn, { TextColor3 = Color3.fromRGB(10, 10, 10) }, 0.15)
+							else
+								tween(OptBtn, { BackgroundTransparency = 1, BackgroundColor3 = Theme.Off }, 0.15)
+								tween(OptBtn, { TextColor3 = Theme.SubText }, 0.15)
+							end
+							refreshLabel()
+							local list = {}
+							for _, n in ipairs(options) do
+								if selected[n] then
+									table.insert(list, n)
+								end
+							end
+							task.spawn(callback, list)
+						else
+							for name, btn in pairs(optionButtons) do
+								tween(btn, { BackgroundTransparency = 1, BackgroundColor3 = Theme.Off, TextColor3 = Theme.SubText }, 0.15)
+							end
+							tween(OptBtn, { BackgroundTransparency = 0, BackgroundColor3 = Highlight, TextColor3 = Color3.fromRGB(10, 10, 10) }, 0.15)
+							Selector.Text = "  " .. optName
+							close()
+							task.spawn(callback, optName)
+						end
 					end)
 				end
 
 				Selector.MouseButton1Click:Connect(function()
-					if open then close() else openList() end
+					if open then
+						close()
+					else
+						openList()
+					end
 				end)
+
+				return Selector
+			end
+
+			function SectionAPI:Dropdown(o)
+				o = o or {}
+				local label = o.Name or "Dropdown"
+				local options = o.Options or {}
+				local callback = o.Callback or function() end
+
+				local Cell = newCell(58)
+				Cell.ClipsDescendants = false
+				create("TextLabel", {
+					Parent = Cell,
+					BackgroundTransparency = 1,
+					Position = UDim2.new(0, 10, 0, 8),
+					Size = UDim2.new(0.7, 0, 0, 14),
+					Font = Enum.Font.GothamMedium,
+					Text = label,
+					TextColor3 = Theme.SubText,
+					TextSize = 11,
+					TextXAlignment = Enum.TextXAlignment.Left,
+				})
+
+				styledDropdownList(Cell, label, options, false, callback)
 
 				registerSearch(Cell, label)
 				return { Cell = Cell }
@@ -1182,15 +1389,14 @@ function Exodus:Init(config)
 				local label = o.Name or "MultiDropdown"
 				local options = o.Options or {}
 				local callback = o.Callback or function() end
-				local selected = {}
 
-				local Cell = newCell(36)
+				local Cell = newCell(58)
 				Cell.ClipsDescendants = false
 				create("TextLabel", {
 					Parent = Cell,
 					BackgroundTransparency = 1,
-					Position = UDim2.new(0, 10, 0, 4),
-					Size = UDim2.new(0.6, 0, 0, 14),
+					Position = UDim2.new(0, 10, 0, 8),
+					Size = UDim2.new(0.7, 0, 0, 14),
 					Font = Enum.Font.GothamMedium,
 					Text = label,
 					TextColor3 = Theme.SubText,
@@ -1198,106 +1404,7 @@ function Exodus:Init(config)
 					TextXAlignment = Enum.TextXAlignment.Left,
 				})
 
-				local Selector = create("TextButton", {
-					Parent = Cell,
-					BackgroundColor3 = Theme.Off,
-					AutoButtonColor = false,
-					Position = UDim2.new(0, 10, 1, -22),
-					Size = UDim2.new(1, -20, 0, 18),
-					Font = Enum.Font.Gotham,
-					Text = "  None selected",
-					TextColor3 = Theme.Text,
-					TextSize = 12,
-					TextXAlignment = Enum.TextXAlignment.Left,
-				})
-				corner(Selector, 6)
-				local selectorStroke = stroke(Selector, Theme.StrokeDim, 1)
-
-				local ListFrame = create("Frame", {
-					Parent = Cell,
-					BackgroundColor3 = Theme.Elevated,
-					BorderSizePixel = 0,
-					Position = UDim2.new(0, 10, 1, 2),
-					Size = UDim2.new(1, -20, 0, 0),
-					ClipsDescendants = true,
-					ZIndex = 30,
-					Visible = false,
-				})
-				corner(ListFrame, 6)
-				stroke(ListFrame, Theme.StrokeDim, 1)
-				listLayout(ListFrame, Enum.FillDirection.Vertical, 2)
-				pad(ListFrame, 4, 4, 4, 4)
-
-				local open = false
-				local function refreshLabel()
-					local count = 0
-					for _ in pairs(selected) do
-						count += 1
-					end
-					Selector.Text = count == 0 and "  None selected" or ("  " .. count .. " selected")
-				end
-
-				local function close()
-					open = false
-					tween(ListFrame, { Size = UDim2.new(1, -20, 0, 0) }, 0.2)
-					task.delay(0.2, function()
-						if not open then
-							ListFrame.Visible = false
-						end
-					end)
-					tween(selectorStroke, { Color = Theme.StrokeDim }, 0.2)
-				end
-
-				local function openList()
-					open = true
-					ListFrame.Visible = true
-					local h = math.min(#options * 22 + 8, 140)
-					tween(ListFrame, { Size = UDim2.new(1, -20, 0, h) }, 0.2)
-					tween(selectorStroke, { Color = Highlight }, 0.2)
-				end
-
-				for i, optName in ipairs(options) do
-					local OptBtn = create("TextButton", {
-						Parent = ListFrame,
-						BackgroundTransparency = 1,
-						AutoButtonColor = false,
-						Size = UDim2.new(1, 0, 0, 20),
-						Font = Enum.Font.Gotham,
-						Text = "☐  " .. optName,
-						TextColor3 = Theme.SubText,
-						TextSize = 12,
-						TextXAlignment = Enum.TextXAlignment.Left,
-						LayoutOrder = i,
-					})
-					corner(OptBtn, 4)
-					OptBtn.MouseEnter:Connect(function()
-						tween(OptBtn, { BackgroundTransparency = 0.9 }, 0.15)
-					end)
-					OptBtn.MouseLeave:Connect(function()
-						tween(OptBtn, { BackgroundTransparency = 1 }, 0.15)
-					end)
-					OptBtn.MouseButton1Click:Connect(function()
-						if selected[optName] then
-							selected[optName] = nil
-							OptBtn.Text = "☐  " .. optName
-							tween(OptBtn, { TextColor3 = Theme.SubText }, 0.15)
-						else
-							selected[optName] = true
-							OptBtn.Text = "☑  " .. optName
-							tween(OptBtn, { TextColor3 = Theme.Text }, 0.15)
-						end
-						refreshLabel()
-						local list = {}
-						for k in pairs(selected) do
-							table.insert(list, k)
-						end
-						task.spawn(callback, list)
-					end)
-				end
-
-				Selector.MouseButton1Click:Connect(function()
-					if open then close() else openList() end
-				end)
+				styledDropdownList(Cell, label, options, true, callback)
 
 				registerSearch(Cell, label)
 				return { Cell = Cell }
