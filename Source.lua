@@ -162,6 +162,12 @@ local function toHex(c)
     return string.format("%02X%02X%02X", c.R * 255, c.G * 255, c.B * 255)
 end
 
+-- Helper to choose contrasting text color
+local function getContrastColor(bg)
+    local lum = 0.299 * bg.R + 0.587 * bg.G + 0.114 * bg.B
+    return lum > 0.5 and Color3.fromRGB(0,0,0) or Color3.fromRGB(255,255,255)
+end
+
 function Exodus:Init(config)
     config = config or {}
 
@@ -228,40 +234,35 @@ function Exodus:Init(config)
         Size = UDim2.new(0, 1, 1, 0),
     })
 
+    -- FIX: Sidebar header alignment – vertically centered text & avatar
     local SidebarHeader = create("Frame", {
         Parent = Sidebar,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 66),
+        Size = UDim2.new(1, 0, 0, 56),
     })
 
-    local Avatar = create("ImageLabel", {
-        Parent = SidebarHeader,
-        BackgroundColor3 = Theme.Off,
-        AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -12, 0.5, -IconSize/2), -- changed
-        Size = UDim2.fromOffset(IconSize, IconSize),
-        Image = LogoId or getAvatar(LocalPlayer.UserId),
-    })
-    corner(Avatar, 9)
-    stroke(Avatar, Theme.StrokeDim, 1)
-
-    create("TextLabel", {
+    -- Text group (window name + handle)
+    local TextGroup = create("Frame", {
         Parent = SidebarHeader,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 24),   -- from 10 to 24
-        Size = UDim2.new(1, -(IconSize + 24), 0, 18),
+        Size = UDim2.new(1, -(IconSize + 24), 1, 0),
+        Position = UDim2.new(0, 12, 0, 0),
+    })
+    vlist(TextGroup, 2)
+    create("TextLabel", {
+        Parent = TextGroup,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 18),
         Font = Enum.Font.GothamBold,
         Text = WindowName,
         TextColor3 = Theme.Text,
         TextSize = 15,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-
     create("TextLabel", {
-        Parent = SidebarHeader,
+        Parent = TextGroup,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 44),  -- from 28 to 44
-        Size = UDim2.new(1, -(IconSize + 24), 0, 14),
+        Size = UDim2.new(1, 0, 0, 14),
         Font = Enum.Font.Gotham,
         Text = Handle,
         TextColor3 = Theme.SubText,
@@ -270,37 +271,31 @@ function Exodus:Init(config)
         Visible = Handle ~= "",
     })
 
-    -- FIX: Minimize button repositioned below the avatar, centered
-    --[[
-    local MinimizeBtn = create("TextButton", {
+    -- Avatar on the right, vertically centered
+    local Avatar = create("ImageLabel", {
         Parent = SidebarHeader,
-        BackgroundColor3 = Theme.Elevated,
-        AutoButtonColor = false,
+        BackgroundColor3 = Theme.Off,
         AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -12 - IconSize - 4, 0, 12 + IconSize / 2),
-        Size = UDim2.fromOffset(22, 14),
-        Text = "—",
-        Font = Enum.Font.GothamBold,
-        TextColor3 = Theme.SubText,
-        TextSize = 9,
+        Position = UDim2.new(1, -12, 0.5, 0),
+        Size = UDim2.fromOffset(IconSize, IconSize),
+        Image = LogoId or getAvatar(LocalPlayer.UserId),
     })
-    corner(MinimizeBtn, 5)
-    stroke(MinimizeBtn, Theme.StrokeDim, 1)
-    --]]
+    corner(Avatar, 9)
+    stroke(Avatar, Theme.StrokeDim, 1)
 
     create("Frame", {
         Parent = Sidebar,
         BackgroundColor3 = Theme.StrokeDim,
         BorderSizePixel = 0,
         Transparency = 0.5,
-        Position = UDim2.new(0, 0, 0, 66),
+        Position = UDim2.new(0, 0, 0, 56),
         Size = UDim2.new(1, 0, 0, 1),
     })
 
     local SearchHolder = create("Frame", {
         Parent = Sidebar,
         BackgroundColor3 = Theme.Elevated,
-        Position = UDim2.new(0, 10, 0, 78),
+        Position = UDim2.new(0, 10, 0, 68),
         Size = UDim2.new(1, -20, 0, 30),
     })
     corner(SearchHolder, 8)
@@ -333,14 +328,14 @@ function Exodus:Init(config)
         Parent = Sidebar,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 8, 0, 118),
-        Size = UDim2.new(1, -16, 1, -126),
+        Position = UDim2.new(0, 8, 0, 108),
+        Size = UDim2.new(1, -16, 1, -116),
         ScrollBarThickness = 2,
         ScrollBarImageColor3 = Theme.StrokeDim,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
     })
-    pad(CategoryList, 4, 12, 2, 2) -- 4,4,2,2
+    pad(CategoryList, 4, 12, 2, 2)
     vlist(CategoryList, 6)
 
     local ContentHolder = create("Frame", {
@@ -351,29 +346,30 @@ function Exodus:Init(config)
         Size = UDim2.new(1, -sidebarWidth, 1, 0),
     })
 
+    -- FIX: ContentHeader – adjust title/subtitle positions
     local ContentHeader = create("Frame", {
         Parent = ContentHolder,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 56),
+        Size = UDim2.new(1, 0, 0, 50),
     })
-    pad(ContentHeader, 18, 18, 12, 0)
+    pad(ContentHeader, 18, 18, 8, 0)
 
     local HeaderTitle = create("TextLabel", {
         Parent = ContentHeader,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 10),   -- from 0 to 10
-        Size = UDim2.new(1, 0, 0, 18),        
+        Size = UDim2.new(1, 0, 0, 18),
         Font = Enum.Font.GothamBold,
         Text = "",
         TextColor3 = Theme.Text,
         TextSize = 17,
         TextXAlignment = Enum.TextXAlignment.Left,
+        Position = UDim2.new(0, 0, 0, 8),
     })
 
     local HeaderDesc = create("TextLabel", {
         Parent = ContentHeader,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 30),   -- from 26 to 30
+        Position = UDim2.new(0, 0, 0, 28),
         Size = UDim2.new(1, 0, 0, 14),
         Font = Enum.Font.Gotham,
         Text = "",
@@ -388,14 +384,14 @@ function Exodus:Init(config)
         BackgroundColor3 = Theme.StrokeDim,
         BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 56), -- maybe change 56 to 50
+        Position = UDim2.new(0, 0, 0, 50),
         Size = UDim2.new(1, 0, 0, 1),
     })
 
     local PageHolder = create("Frame", {
         Parent = ContentHolder,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 57),
+        Position = UDim2.new(0, 0, 0, 51),
         Size = UDim2.new(1, 0, 1, -51),
     })
 
@@ -481,14 +477,9 @@ function Exodus:Init(config)
         else
             Main.Visible = true
             MainScale.Scale = 1
-           --  tween(MainScale, { Scale = 1 }, 0.28, Enum.EasingStyle.Back)
         end
     end
-    --[[
-    MinimizeBtn.MouseButton1Click:Connect(function()
-        setMinimized(not minimized)
-    end)
-    --]]
+
     UIS.InputBegan:Connect(function(input, processed)
         if input.KeyCode == Keybind then
             setMinimized(not minimized)
@@ -499,7 +490,7 @@ function Exodus:Init(config)
     local function closeAllDropdowns(exclude)
         for _, dd in ipairs(openDropdowns) do
             if dd ~= exclude then
-                dd()   -- call the stored close function
+                dd()
             end
         end
     end
@@ -514,7 +505,7 @@ function Exodus:Init(config)
         AutoButtonColor = false,
     })
     DropdownBlocker.MouseButton1Click:Connect(function()
-        closeAllDropdowns() -- this line
+        closeAllDropdowns()
         DropdownBlocker.Visible = false
     end)
 
@@ -691,9 +682,6 @@ function Exodus:Init(config)
                 Visible = false,
             })
 
-            -- FIX: Use an inner wrapper so twoColGroup respects the visible content area.
-            -- Without this, the Row inside twoColGroup uses the full ScrollingFrame width
-            -- (ignoring UIPadding), causing the right column to clip past the edge.
             local PageInner = create("Frame", {
                 Parent = Page,
                 BackgroundTransparency = 1,
@@ -705,7 +693,6 @@ function Exodus:Init(config)
 
             local PageRow, nextPageColumn = twoColGroup(PageInner, 14)
 
-            -- Bottom padding spacer so content doesn't touch the scroll edge
             create("Frame", {
                 Parent = PageInner,
                 BackgroundTransparency = 1,
@@ -715,6 +702,7 @@ function Exodus:Init(config)
             local tabData = { sections = {} }
             Window._tabs[tabName] = tabData
 
+            -- FIX: prevent double selection
             local function selectTab()
                 if Page.Visible then return end
                 closeAllDropdowns()
@@ -722,18 +710,19 @@ function Exodus:Init(config)
                 for name, t in pairs(Window._tabs) do
                     if t.page then t.page.Visible = false end
                     if t.button then
-                        -- In selectTab, after clearing, set new tab properties directly:
-                        TabButton.BackgroundColor3 = Highlight
-                        TabButton.BackgroundTransparency = 0
-                        TabLabel.TextColor3 = Color3.fromRGB(10, 10, 10)
-                        TabIconImage.ImageColor3 = Color3.fromRGB(10, 10, 10)
+                        t.button.BackgroundColor3 = Theme.Off
+                        t.button.BackgroundTransparency = 1
+                        t.label.TextColor3 = Theme.SubText
+                        t.tabIcon.ImageColor3 = Theme.SubText
                     end
                 end
                 Page.Visible = true
                 Window._activeTab = Page
                 tween(TabButton, { BackgroundColor3 = Highlight, BackgroundTransparency = 0 }, 0.2)
-                tween(TabLabel, { TextColor3 = Color3.fromRGB(10, 10, 10) }, 0.2)
-                tween(TabIconImage, { ImageColor3 = Color3.fromRGB(10, 10, 10) }, 0.2)
+                -- FIX: set text color to contrast with highlight
+                local contrast = getContrastColor(Highlight)
+                tween(TabLabel, { TextColor3 = contrast }, 0.2)
+                tween(TabIconImage, { ImageColor3 = contrast }, 0.2)
                 HeaderTitle.Text = tabName
                 HeaderDesc.Text = tabDesc
                 HeaderDesc.Visible = tabDesc ~= ""
@@ -760,8 +749,6 @@ function Exodus:Init(config)
             if firstTabEver then
                 firstTabEver = false
                 setExpanded(true)
-                task.wait()   -- allow layout to compute
-                refreshHeight()
                 selectTab()
             end
 
@@ -849,6 +836,7 @@ function Exodus:Init(config)
                     })
                 end
 
+                -- FIX: dropdown list alignment – match button width
                 local function styledDropdownList(Row, options, isMulti, callback)
                     local Selector = create("TextButton", {
                         Parent = Row,
@@ -857,7 +845,7 @@ function Exodus:Init(config)
                         AutoButtonColor = false,
                         AnchorPoint = Vector2.new(1, 0.5),
                         Position = UDim2.new(1, 0, 0.5, 0),
-                        Size = UDim2.fromOffset(100, 22),
+                        Size = UDim2.fromOffset(140, 22),
                         Font = Enum.Font.Gotham,
                         Text = isMulti and "None" or "Select",
                         TextColor3 = Theme.Text,
@@ -873,7 +861,7 @@ function Exodus:Init(config)
                         Parent = ScreenGui,
                         BackgroundColor3 = Theme.Elevated,
                         BorderSizePixel = 0,
-                        Size = UDim2.new(0, 100, 0, 0),
+                        Size = UDim2.new(0, 140, 0, 0),
                         ClipsDescendants = true,
                         ZIndex = 100,
                         Visible = false,
@@ -909,12 +897,10 @@ function Exodus:Init(config)
                         local selPos = Selector.AbsolutePosition
                         local selSize = Selector.AbsoluteSize
                         local screenSize = ScreenGui.AbsoluteSize
-                        local x = math.clamp(selPos.X + selSize.X - 110, 4, screenSize.X - 114)
+                        -- FIX: align right edge with button
+                        local listWidth = 140
+                        local x = math.clamp(selPos.X + selSize.X - listWidth, 4, screenSize.X - listWidth - 4)
                         local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - h - 4)
-                        --[[
-                        local x = math.clamp(selPos.X, 4, screenSize.X - 100 - 4)  -- left align with selector
-                        local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - h - 4)
-                        --]]
                         ListFrame.Position = UDim2.fromOffset(x, y)
                         table.insert(openDropdowns, close)
                     end
@@ -980,7 +966,7 @@ function Exodus:Init(config)
                                 for _, btn in pairs(optionButtons) do
                                     tween(btn, { BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
                                 end
-                                tween(OptBtn, {  BackgroundTransparency = 0, TextColor3 = Theme.Text }, 0.15)
+                                tween(OptBtn, {  BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
                                 Selector.Text = optName
                                 close()
                                 task.spawn(callback, optName)
@@ -1060,7 +1046,7 @@ function Exodus:Init(config)
                         Size = UDim2.new(1, -50, 1, 0),
                         Font = Enum.Font.GothamMedium,
                         Text = label,
-                        TextColor3 = state and Theme.Text or Theme.SubText,   -- initial colour based on state
+                        TextColor3 = state and Theme.Text or Theme.SubText,
                         TextSize = 13,
                         TextXAlignment = Enum.TextXAlignment.Left,
                     })
@@ -1093,7 +1079,6 @@ function Exodus:Init(config)
                     local function render()
                         tween(SwitchBG, { BackgroundColor3 = state and Highlight or Theme.Off }, 0.2)
                         tween(Knob, { Position = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6) }, 0.2, Enum.EasingStyle.Back)
-                        -- Update label colour
                         tween(Label, { TextColor3 = state and Theme.Text or Theme.SubText }, 0.2)
                     end
 
@@ -1146,14 +1131,14 @@ function Exodus:Init(config)
                         BackgroundTransparency = 1,
                         Position = UDim2.new(0, 0, 0, 0),
                         Size = UDim2.new(1, 0, 1, 0),
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                        TextYAlignment = Enum.TextYAlignment.Center,
                         Font = Enum.Font.Gotham,
                         PlaceholderText = placeholder,
                         PlaceholderColor3 = Theme.SubText,
                         Text = "",
                         TextColor3 = Theme.Text,
                         TextSize = 12,
+                        TextXAlignment = Enum.TextXAlignment.Center,  -- FIX: center text
+                        TextYAlignment = Enum.TextYAlignment.Center,
                         ClearTextOnFocus = false,
                         ClipsDescendants = true,
                     })
@@ -1273,7 +1258,7 @@ function Exodus:Init(config)
                     o = o or {}
                     local title = o.Name or "Paragraph"
                     local text = o.Text or ""
-                
+
                     local Row = create("Frame", {
                         Parent = RowHolder,
                         BackgroundTransparency = 1,
@@ -1282,43 +1267,25 @@ function Exodus:Init(config)
                     })
                     pad(Row, 8, 0, 0, 0)
                     vlist(Row, 4)
-                
-                    -- Header row: bar + title (horizontal)
-                    local HeaderRow = create("Frame", {
+
+                    create("Frame", {
+                        Parent = Row,
+                        BackgroundColor3 = Highlight,
+                        Position = UDim2.new(0, -8, 0, 1),
+                        Size = UDim2.fromOffset(2, 14),
+                    })
+
+                    create("TextLabel", {
                         Parent = Row,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(1, 0, 0, 16),
-                        LayoutOrder = 1,
-                    })
-                    create("UIListLayout", {
-                        Parent = HeaderRow,
-                        FillDirection = Enum.FillDirection.Horizontal,
-                        SortOrder = Enum.SortOrder.LayoutOrder,
-                        Padding = UDim.new(0, 6),
-                    })
-                
-                    -- Accent bar (vertical line)
-                    create("Frame", {
-                        Parent = HeaderRow,
-                        BackgroundColor3 = Highlight,
-                        Size = UDim2.fromOffset(2, 14),
-                        LayoutOrder = 1,
-                    })
-                
-                    -- Title (heading) – placed to the right of the bar
-                    create("TextLabel", {
-                        Parent = HeaderRow,
-                        BackgroundTransparency = 1,
-                        Size = UDim2.new(1, -8, 1, 0),   -- fills remaining width
+                        Size = UDim2.new(1, 0, 0, 14),
                         Font = Enum.Font.GothamBold,
                         Text = title,
                         TextColor3 = Theme.Text,
                         TextSize = 12,
                         TextXAlignment = Enum.TextXAlignment.Left,
-                        LayoutOrder = 2,
+                        LayoutOrder = 1,
                     })
-                
-                    -- Paragraph text (below the header row)
                     create("TextLabel", {
                         Parent = Row,
                         BackgroundTransparency = 1,
@@ -1333,18 +1300,32 @@ function Exodus:Init(config)
                         TextYAlignment = Enum.TextYAlignment.Top,
                         LayoutOrder = 2,
                     })
-                
+
                     registerSearch(Row, title)
                     return { Row = Row }
                 end
 
+                -- FIX: Keybind – support mouse buttons
                 function SectionAPI:Keybind(o)
                     o = o or {}
                     local label = o.Name or "Keybind"
                     local default = o.Default or Enum.KeyCode.F
                     local callback = o.Callback or function() end
                     local currentKey = default
+                    local currentInputType = Enum.UserInputType.Keyboard
                     local listening = false
+
+                    local function getInputName(input)
+                        if input.UserInputType == Enum.UserInputType.Keyboard then
+                            return input.KeyCode.Name
+                        elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+                            return "Mouse1"
+                        elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+                            return "Mouse2"
+                        else
+                            return "Unknown"
+                        end
+                    end
 
                     local Row = newRow(24)
                     create("TextLabel", {
@@ -1367,7 +1348,7 @@ function Exodus:Init(config)
                         Position = UDim2.new(1, 0, 0.5, 0),
                         Size = UDim2.fromOffset(90, 22),
                         Font = Enum.Font.Gotham,
-                        Text = currentKey.Name,
+                        Text = default.Name,
                         TextColor3 = Theme.Text,
                         TextSize = 11,
                         ClipsDescendants = true,
@@ -1381,14 +1362,23 @@ function Exodus:Init(config)
                     end)
 
                     UIS.InputBegan:Connect(function(input, processed)
-                        if listening and (input.UserInputType == Enum.UserInputType.Keyboard 
-                          or input.UserInputType == Enum.UserInputType.MouseButton1 
-                          or input.UserInputType == Enum.UserInputType.MouseButton2) then
-                            currentKey = input.KeyCode
-                            KeyBox.Text = currentKey.Name
-                            listening = false
-                        elseif not processed and not listening and input.KeyCode == currentKey then
-                            task.spawn(callback, currentKey)
+                        if listening then
+                            if input.UserInputType == Enum.UserInputType.Keyboard or
+                               input.UserInputType == Enum.UserInputType.MouseButton1 or
+                               input.UserInputType == Enum.UserInputType.MouseButton2 then
+                                currentKey = input.KeyCode
+                                currentInputType = input.UserInputType
+                                KeyBox.Text = getInputName(input)
+                                listening = false
+                            end
+                        elseif not processed and not listening then
+                            if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
+                                task.spawn(callback, currentKey)
+                            elseif input.UserInputType == currentInputType and
+                                   (input.UserInputType == Enum.UserInputType.MouseButton1 or
+                                    input.UserInputType == Enum.UserInputType.MouseButton2) then
+                                task.spawn(callback, input.UserInputType)
+                            end
                         end
                     end)
 
