@@ -182,6 +182,20 @@ function Exodus:Init(config)
         Parent = CoreGui,
     })
 
+    local DropdownBlocker = create("TextButton", {
+        Parent = ScreenGui,
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 1),
+        Text = "",
+        ZIndex = 50,
+        Visible = false,
+        AutoButtonColor = false,
+    })
+    DropdownBlocker.MouseButton1Click:Connect(function()
+        closeAllDropdowns()
+        DropdownBlocker.Visible = false
+    end)
+
     local baseWidth, baseHeight = 700, 500
     local minWidth, minHeight = 560, 400
 
@@ -268,6 +282,7 @@ function Exodus:Init(config)
     })
 
     -- FIX: Minimize button repositioned below the avatar, centered
+    --[[
     local MinimizeBtn = create("TextButton", {
         Parent = SidebarHeader,
         BackgroundColor3 = Theme.Elevated,
@@ -282,6 +297,7 @@ function Exodus:Init(config)
     })
     corner(MinimizeBtn, 5)
     stroke(MinimizeBtn, Theme.StrokeDim, 1)
+    --]]
 
     create("Frame", {
         Parent = Sidebar,
@@ -335,7 +351,7 @@ function Exodus:Init(config)
         CanvasSize = UDim2.new(0, 0, 0, 0),
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
     })
-    pad(CategoryList, 4, 4, 2, 2)
+    pad(CategoryList, 4, 12, 2, 2) -- 4,4,2,2
     vlist(CategoryList, 6)
 
     local ContentHolder = create("Frame", {
@@ -349,7 +365,7 @@ function Exodus:Init(config)
     local ContentHeader = create("Frame", {
         Parent = ContentHolder,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 50),
+        Size = UDim2.new(1, 0, 0, 56),
     })
     pad(ContentHeader, 18, 18, 12, 0)
 
@@ -367,7 +383,7 @@ function Exodus:Init(config)
     local HeaderDesc = create("TextLabel", {
         Parent = ContentHeader,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 22),
+        Position = UDim2.new(0, 0, 0, 26),
         Size = UDim2.new(1, 0, 0, 14),
         Font = Enum.Font.Gotham,
         Text = "",
@@ -382,14 +398,14 @@ function Exodus:Init(config)
         BackgroundColor3 = Theme.StrokeDim,
         BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 50),
+        Position = UDim2.new(0, 0, 0, 56), -- maybe change 56 to 50
         Size = UDim2.new(1, 0, 0, 1),
     })
 
     local PageHolder = create("Frame", {
         Parent = ContentHolder,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 51),
+        Position = UDim2.new(0, 0, 0, 57),
         Size = UDim2.new(1, 0, 1, -51),
     })
 
@@ -473,15 +489,15 @@ function Exodus:Init(config)
             Main.Visible = false
         else
             Main.Visible = true
-            MainScale.Scale = 0.001
-            tween(MainScale, { Scale = 1 }, 0.28, Enum.EasingStyle.Back)
+            MainScale.Scale = 1
+           --  tween(MainScale, { Scale = 1 }, 0.28, Enum.EasingStyle.Back)
         end
     end
-
+    --[[
     MinimizeBtn.MouseButton1Click:Connect(function()
         setMinimized(not minimized)
     end)
-
+    --]]
     UIS.InputBegan:Connect(function(input, processed)
         if input.KeyCode == Keybind then
             setMinimized(not minimized)
@@ -695,6 +711,9 @@ function Exodus:Init(config)
             Window._tabs[tabName] = tabData
 
             local function selectTab()
+                if Page.Visible then return end
+                closeAllDropdowns()
+                DropdownBlocker.Visible = false
                 for name, t in pairs(Window._tabs) do
                     if t.page then
                         t.page.Visible = false
@@ -864,6 +883,7 @@ function Exodus:Init(config)
                     local function close()
                         open = false
                         ListFrame.Visible = false
+                        DropdownBlocker.Visible = false
                         for i, dd in ipairs(openDropdowns) do
                             if dd == close then
                                 table.remove(openDropdowns, i)
@@ -876,6 +896,7 @@ function Exodus:Init(config)
                         closeAllDropdowns(close)
                         open = true
                         ListFrame.Visible = true
+                        DropdownBlocker.Visible = true
                         local h = math.min(#options * 24 + 8, 160)
                         ListFrame.Size = UDim2.new(0, 110, 0, h)
                         local selPos = Selector.AbsolutePosition
@@ -934,7 +955,7 @@ function Exodus:Init(config)
                                 else
                                     selected[optName] = true
                                     tween(OptBtn, { BackgroundTransparency = 0 }, 0.15)
-                                    tween(OptBtn, { TextColor3 = Color3.fromRGB(10, 10, 10) }, 0.15)
+                                    tween(OptBtn, { TextColor3 = Theme.Text }, 0.15)
                                 end
                                 refreshLabel()
                                 local list = {}
@@ -1112,8 +1133,8 @@ function Exodus:Init(config)
                     local Box = create("TextBox", {
                         Parent = InputBG,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 8, 0, 0),
-                        Size = UDim2.new(1, -16, 1, 0),
+                        Position = UDim2.new(0, 0, 0, 0), -- 0, 8, 0, 0
+                        Size = UDim2.new(1, 0, 1, 0), -- 1,-16,1,0
                         Font = Enum.Font.Gotham,
                         PlaceholderText = placeholder,
                         PlaceholderColor3 = Theme.SubText,
@@ -1331,7 +1352,9 @@ function Exodus:Init(config)
                     end)
 
                     UIS.InputBegan:Connect(function(input, processed)
-                        if listening and input.UserInputType == Enum.UserInputType.Keyboard then
+                        if listening and (input.UserInputType == Enum.UserInputType.Keyboard 
+                          or input.UserInputType == Enum.UserInputType.MouseButton1 
+                          or input.UserInputType == Enum.UserInputType.MouseButton2) then
                             currentKey = input.KeyCode
                             KeyBox.Text = currentKey.Name
                             listening = false
