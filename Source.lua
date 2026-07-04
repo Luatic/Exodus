@@ -192,7 +192,7 @@ function Exodus:Init(config)
         AutoButtonColor = false,
     })
     DropdownBlocker.MouseButton1Click:Connect(function()
-        closeAllDropdowns()
+        closeAllDropdowns() -- this line
         DropdownBlocker.Visible = false
     end)
 
