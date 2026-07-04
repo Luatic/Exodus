@@ -217,6 +217,9 @@ function Exodus:Init(config)
         BorderSizePixel = 0,
         Size = UDim2.new(0, sidebarWidth, 1, 0),
     })
+
+    corner(Sidebar, 12)
+    
     create("Frame", {
         Parent = Sidebar,
         BackgroundColor3 = Theme.StrokeDim,
