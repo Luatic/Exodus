@@ -272,8 +272,8 @@ function Exodus:Init(config)
         Parent = SidebarHeader,
         BackgroundColor3 = Theme.Elevated,
         AutoButtonColor = false,
-        AnchorPoint = Vector2.new(0.5, 0),
-        Position = UDim2.new(1, -12 - IconSize / 2, 0, 12 + IconSize + 4),
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -12 - IconSize - 4, 0, 12 + IconSize / 2),
         Size = UDim2.fromOffset(22, 14),
         Text = "—",
         Font = Enum.Font.GothamBold,
@@ -439,7 +439,18 @@ function Exodus:Init(config)
             end)
         end
     end)
-
+    ContentHeader.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
     UIS.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             if dragging then
@@ -1011,13 +1022,13 @@ function Exodus:Init(config)
                     local state = default
 
                     local Row = newRow(24)
-                    create("TextLabel", {
+                    local Label = create("TextLabel", {
                         Parent = Row,
                         BackgroundTransparency = 1,
                         Size = UDim2.new(1, -50, 1, 0),
                         Font = Enum.Font.GothamMedium,
                         Text = label,
-                        TextColor3 = Theme.Text,
+                        TextColor3 = state and Theme.Text or Theme.SubText,   -- initial colour based on state
                         TextSize = 13,
                         TextXAlignment = Enum.TextXAlignment.Left,
                     })
@@ -1050,6 +1061,8 @@ function Exodus:Init(config)
                     local function render()
                         tween(SwitchBG, { BackgroundColor3 = state and Highlight or Theme.Off }, 0.2)
                         tween(Knob, { Position = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6) }, 0.2, Enum.EasingStyle.Back)
+                        -- Update label colour
+                        tween(Label, { TextColor3 = state and Theme.Text or Theme.SubText }, 0.2)
                     end
 
                     Click.MouseButton1Click:Connect(function()
