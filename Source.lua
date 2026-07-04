@@ -182,20 +182,6 @@ function Exodus:Init(config)
         Parent = CoreGui,
     })
 
-    local DropdownBlocker = create("TextButton", {
-        Parent = ScreenGui,
-        BackgroundTransparency = 1,
-        Size = UDim2.fromScale(1, 1),
-        Text = "",
-        ZIndex = 50,
-        Visible = false,
-        AutoButtonColor = false,
-    })
-    DropdownBlocker.MouseButton1Click:Connect(function()
-        closeAllDropdowns() -- this line
-        DropdownBlocker.Visible = false
-    end)
-
     local baseWidth, baseHeight = 700, 500
     local minWidth, minHeight = 560, 400
 
@@ -424,6 +410,7 @@ function Exodus:Init(config)
         Font = Enum.Font.GothamBold,
         Text = "⌟",
         TextColor3 = Theme.SubText,
+        TextTransparency = 1,
         TextSize = 16,
     })
 
@@ -512,6 +499,20 @@ function Exodus:Init(config)
             end
         end
     end
+
+    local DropdownBlocker = create("TextButton", {
+        Parent = ScreenGui,
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 1),
+        Text = "",
+        ZIndex = 50,
+        Visible = false,
+        AutoButtonColor = false,
+    })
+    DropdownBlocker.MouseButton1Click:Connect(function()
+        closeAllDropdowns() -- this line
+        DropdownBlocker.Visible = false
+    end)
 
     local Window = {}
     Window._searchIndex = {}
@@ -715,13 +716,12 @@ function Exodus:Init(config)
                 closeAllDropdowns()
                 DropdownBlocker.Visible = false
                 for name, t in pairs(Window._tabs) do
-                    if t.page then
-                        t.page.Visible = false
-                    end
+                    if t.page then t.page.Visible = false end
                     if t.button then
-                        tween(t.button, { BackgroundColor3 = Theme.Off, BackgroundTransparency = 1 }, 0.2)
-                        tween(t.label, { TextColor3 = Theme.SubText }, 0.2)
-                        tween(t.tabIcon, { ImageColor3 = Theme.SubText }, 0.2)
+                        t.button.BackgroundColor3 = Theme.Off
+                        t.button.BackgroundTransparency = 1
+                        t.label.TextColor3 = Theme.SubText
+                        t.tabIcon.ImageColor3 = Theme.SubText
                     end
                 end
                 Page.Visible = true
@@ -850,7 +850,7 @@ function Exodus:Init(config)
                         AutoButtonColor = false,
                         AnchorPoint = Vector2.new(1, 0.5),
                         Position = UDim2.new(1, 0, 0.5, 0),
-                        Size = UDim2.fromOffset(110, 22),
+                        Size = UDim2.fromOffset(140, 22),
                         Font = Enum.Font.Gotham,
                         Text = isMulti and "None" or "Select",
                         TextColor3 = Theme.Text,
@@ -866,7 +866,7 @@ function Exodus:Init(config)
                         Parent = ScreenGui,
                         BackgroundColor3 = Theme.Elevated,
                         BorderSizePixel = 0,
-                        Size = UDim2.new(0, 110, 0, 0),
+                        Size = UDim2.new(0, 140, 0, 0),
                         ClipsDescendants = true,
                         ZIndex = 100,
                         Visible = false,
@@ -898,7 +898,7 @@ function Exodus:Init(config)
                         ListFrame.Visible = true
                         DropdownBlocker.Visible = true
                         local h = math.min(#options * 24 + 8, 160)
-                        ListFrame.Size = UDim2.new(0, 110, 0, h)
+                        ListFrame.Size = UDim2.new(0, 140, 0, h)
                         local selPos = Selector.AbsolutePosition
                         local selSize = Selector.AbsoluteSize
                         local screenSize = ScreenGui.AbsoluteSize
@@ -969,7 +969,7 @@ function Exodus:Init(config)
                                 for _, btn in pairs(optionButtons) do
                                     tween(btn, { BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
                                 end
-                                tween(OptBtn, { BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(10, 10, 10) }, 0.15)
+                                tween(OptBtn, {  BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
                                 Selector.Text = optName
                                 close()
                                 task.spawn(callback, optName)
