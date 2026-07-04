@@ -20,11 +20,11 @@ local Theme = {
 	Off = Color3.fromRGB(30, 30, 30),
 }
 
--- asset IDs for custom icons
 local ASSETS = {
-	ChevronCollapsed = "rbxassetid://86512767702085",   -- corner-down-right
-	ChevronExpanded   = "rbxassetid://131324733048447", -- arrow-left-right
-	SectionIcon       = "rbxassetid://113179976918783", -- list
+	ChevronCollapsed = "rbxassetid://131324733048447",
+	ChevronExpanded   = "rbxassetid://81019887641527",
+	SectionIcon       = "rbxassetid://113179976918783",
+	TabIcon           = "rbxassetid://86512767702085",
 }
 
 local function tween(obj, props, time, style, dir)
@@ -166,7 +166,7 @@ function Exodus:Init(config)
 	config = config or {}
 
 	local WindowName = config.Name or "EXODUS"
-	local Handle = config.Handle or ""
+	local Handle = config.Handle or ("@" .. LocalPlayer.Name)
 	local Keybind = config.Keybind or Enum.KeyCode.LeftAlt
 	if typeof(Keybind) == "string" then
 		Keybind = Enum.KeyCode[Keybind] or Enum.KeyCode.LeftAlt
@@ -182,8 +182,8 @@ function Exodus:Init(config)
 		Parent = CoreGui,
 	})
 
-	local baseWidth, baseHeight = 700, 440
-	local minWidth, minHeight = 540, 340
+	local baseWidth, baseHeight = 700, 500
+	local minWidth, minHeight = 540, 380
 
 	local Main = create("Frame", {
 		Name = "Main",
@@ -234,7 +234,8 @@ function Exodus:Init(config)
 	local Avatar = create("ImageLabel", {
 		Parent = SidebarHeader,
 		BackgroundColor3 = Theme.Off,
-		Position = UDim2.new(0, 12, 0, 12),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 12),
 		Size = UDim2.fromOffset(IconSize, IconSize),
 		Image = LogoId or getAvatar(LocalPlayer.UserId),
 	})
@@ -244,8 +245,8 @@ function Exodus:Init(config)
 	create("TextLabel", {
 		Parent = SidebarHeader,
 		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 18 + IconSize, 0, 10),
-		Size = UDim2.new(1, -(60 + IconSize), 0, 18),
+		Position = UDim2.new(0, 12, 0, 10),
+		Size = UDim2.new(1, -(IconSize + 24), 0, 18),
 		Font = Enum.Font.GothamBold,
 		Text = WindowName,
 		TextColor3 = Theme.Text,
@@ -256,8 +257,8 @@ function Exodus:Init(config)
 	create("TextLabel", {
 		Parent = SidebarHeader,
 		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 18 + IconSize, 0, 28),
-		Size = UDim2.new(1, -(60 + IconSize), 0, 14),
+		Position = UDim2.new(0, 12, 0, 28),
+		Size = UDim2.new(1, -(IconSize + 24), 0, 14),
 		Font = Enum.Font.Gotham,
 		Text = Handle,
 		TextColor3 = Theme.SubText,
@@ -455,7 +456,6 @@ function Exodus:Init(config)
 	local function setMinimized(state)
 		minimized = state
 		if state then
-			-- Instant hide – no animation
 			Main.Visible = false
 		else
 			Main.Visible = true
@@ -474,7 +474,6 @@ function Exodus:Init(config)
 		end
 	end)
 
-	-- Shared state for dropdowns: only one open at a time
 	local openDropdowns = {}
 	local function closeAllDropdowns(exclude)
 		for _, dd in ipairs(openDropdowns) do
@@ -552,7 +551,6 @@ function Exodus:Init(config)
 			TextXAlignment = Enum.TextXAlignment.Left,
 		})
 
-		-- Replace chevron with ImageLabel using custom assets
 		local Chevron = create("ImageLabel", {
 			Parent = CategoryButton,
 			BackgroundTransparency = 1,
@@ -626,19 +624,20 @@ function Exodus:Init(config)
 			})
 			corner(TabButton, 7)
 
-			local Dot = create("Frame", {
+			local TabIconImage = create("ImageLabel", {
 				Parent = TabButton,
-				BackgroundColor3 = Theme.SubText,
-				Position = UDim2.new(0, 8, 0.5, -2),
-				Size = UDim2.fromOffset(4, 4),
+				BackgroundTransparency = 1,
+				Position = UDim2.new(0, 8, 0.5, -7),
+				Size = UDim2.fromOffset(14, 14),
+				Image = ASSETS.TabIcon,
+				ImageColor3 = Theme.SubText,
 			})
-			corner(Dot, 999)
 
 			local TabLabel = create("TextLabel", {
 				Parent = TabButton,
 				BackgroundTransparency = 1,
-				Position = UDim2.new(0, 20, 0, 0),
-				Size = UDim2.new(1, -26, 1, 0),
+				Position = UDim2.new(0, 28, 0, 0),
+				Size = UDim2.new(1, -34, 1, 0),
 				Font = Enum.Font.GothamMedium,
 				Text = tabName,
 				TextColor3 = Theme.SubText,
@@ -672,14 +671,14 @@ function Exodus:Init(config)
 					if t.button then
 						tween(t.button, { BackgroundColor3 = Theme.Off, BackgroundTransparency = 1 }, 0.2)
 						tween(t.label, { TextColor3 = Theme.SubText }, 0.2)
-						tween(t.dot, { BackgroundColor3 = Theme.SubText }, 0.2)
+						tween(t.tabIcon, { ImageColor3 = Theme.SubText }, 0.2)
 					end
 				end
 				Page.Visible = true
 				Window._activeTab = Page
 				tween(TabButton, { BackgroundColor3 = Highlight, BackgroundTransparency = 0 }, 0.2)
 				tween(TabLabel, { TextColor3 = Color3.fromRGB(10, 10, 10) }, 0.2)
-				tween(Dot, { BackgroundColor3 = Color3.fromRGB(10, 10, 10) }, 0.2)
+				tween(TabIconImage, { ImageColor3 = Color3.fromRGB(10, 10, 10) }, 0.2)
 				HeaderTitle.Text = tabName
 				HeaderDesc.Text = tabDesc
 				HeaderDesc.Visible = tabDesc ~= ""
@@ -691,7 +690,7 @@ function Exodus:Init(config)
 			tabData.page = Page
 			tabData.button = TabButton
 			tabData.label = TabLabel
-			tabData.dot = Dot
+			tabData.tabIcon = TabIconImage
 
 			TabButton.MouseButton1Click:Connect(selectTab)
 			TabButton.MouseEnter:Connect(function()
@@ -714,7 +713,7 @@ function Exodus:Init(config)
 			function TabAPI:Section(sectionOpts)
 				sectionOpts = sectionOpts or {}
 				local sectionName = sectionOpts.Name or "Section"
-				local sectionIcon = sectionOpts.Icon or ASSETS.SectionIcon  -- default to list icon
+				local sectionIcon = sectionOpts.Icon or ASSETS.SectionIcon
 
 				local parentColumn = nextPageColumn()
 
@@ -793,7 +792,6 @@ function Exodus:Init(config)
 					})
 				end
 
-				-- Dropdown helper: returns a selector button and a close function
 				local function styledDropdownList(Row, options, isMulti, callback)
 					local Selector = create("TextButton", {
 						Parent = Row,
@@ -814,9 +812,8 @@ function Exodus:Init(config)
 					Selector.TextXAlignment = Enum.TextXAlignment.Left
 					pad(Selector, 8, 8, 0, 0)
 
-					-- Use a global overlay for dropdown lists to avoid clipping
 					local ListFrame = create("Frame", {
-						Parent = ScreenGui,  -- top-level to avoid clipping
+						Parent = ScreenGui,
 						BackgroundColor3 = Theme.Elevated,
 						BorderSizePixel = 0,
 						Size = UDim2.new(0, 110, 0, 0),
@@ -836,7 +833,6 @@ function Exodus:Init(config)
 					local function close()
 						open = false
 						ListFrame.Visible = false
-						-- remove from openDropdowns
 						for i, dd in ipairs(openDropdowns) do
 							if dd == close then
 								table.remove(openDropdowns, i)
@@ -846,20 +842,17 @@ function Exodus:Init(config)
 					end
 
 					local function openList()
-						-- close all others
 						closeAllDropdowns(close)
 						open = true
 						ListFrame.Visible = true
 						local h = math.min(#options * 24 + 8, 160)
 						ListFrame.Size = UDim2.new(0, 110, 0, h)
-						-- position below the selector
 						local selPos = Selector.AbsolutePosition
 						local selSize = Selector.AbsoluteSize
 						local screenSize = ScreenGui.AbsoluteSize
 						local x = math.clamp(selPos.X + selSize.X - 110, 4, screenSize.X - 114)
 						local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - h - 4)
 						ListFrame.Position = UDim2.fromOffset(x, y)
-						-- add to open list
 						table.insert(openDropdowns, close)
 					end
 
@@ -940,7 +933,6 @@ function Exodus:Init(config)
 						end
 					end)
 
-					-- return the selector and a close function
 					return Selector, close
 				end
 
@@ -1633,10 +1625,9 @@ function Exodus:Init(config)
 						end
 					end
 
-					-- Only open on click, never toggle
 					Swatch.MouseButton1Click:Connect(function()
 						if Popup.Visible then
-							return  -- do nothing, only close via outside click
+							return
 						end
 						local pos = Swatch.AbsolutePosition
 						local screenSize = ScreenGui.AbsoluteSize
@@ -1659,7 +1650,6 @@ function Exodus:Init(config)
 					return { Row = Row }
 				end
 
-				-- Dropdown and MultiDropdown now use the same helper with mutual exclusion
 				function SectionAPI:Dropdown(o)
 					o = o or {}
 					local label = o.Name or "Dropdown"
