@@ -494,8 +494,8 @@ function Exodus:Init(config)
     local openDropdowns = {}
     local function closeAllDropdowns(exclude)
         for _, dd in ipairs(openDropdowns) do
-            if dd ~= exclude and dd.close then
-                dd.close()
+            if dd ~= exclude then
+                dd()   -- call the stored close function
             end
         end
     end
