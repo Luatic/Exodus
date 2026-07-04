@@ -20,6 +20,13 @@ local Theme = {
 	Off = Color3.fromRGB(30, 30, 30),
 }
 
+-- asset IDs for custom icons
+local ASSETS = {
+	ChevronCollapsed = "rbxassetid://86512767702085",   -- corner-down-right
+	ChevronExpanded   = "rbxassetid://131324733048447", -- arrow-left-right
+	SectionIcon       = "rbxassetid://113179976918783", -- list
+}
+
 local function tween(obj, props, time, style, dir)
 	local t = TweenService:Create(obj, TweenInfo.new(time or 0.25, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out), props)
 	t:Play()
@@ -448,12 +455,8 @@ function Exodus:Init(config)
 	local function setMinimized(state)
 		minimized = state
 		if state then
-			local t = tween(MainScale, { Scale = 0.001 }, 0.22, Enum.EasingStyle.Quint)
-			t.Completed:Connect(function()
-				if minimized then
-					Main.Visible = false
-				end
-			end)
+			-- Instant hide – no animation
+			Main.Visible = false
 		else
 			Main.Visible = true
 			MainScale.Scale = 0.001
@@ -470,6 +473,16 @@ function Exodus:Init(config)
 			setMinimized(not minimized)
 		end
 	end)
+
+	-- Shared state for dropdowns: only one open at a time
+	local openDropdowns = {}
+	local function closeAllDropdowns(exclude)
+		for _, dd in ipairs(openDropdowns) do
+			if dd ~= exclude and dd.close then
+				dd.close()
+			end
+		end
+	end
 
 	local Window = {}
 	Window._searchIndex = {}
@@ -539,17 +552,15 @@ function Exodus:Init(config)
 			TextXAlignment = Enum.TextXAlignment.Left,
 		})
 
-		local Chevron = create("TextLabel", {
+		-- Replace chevron with ImageLabel using custom assets
+		local Chevron = create("ImageLabel", {
 			Parent = CategoryButton,
 			BackgroundTransparency = 1,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -4, 0.5, 0),
 			Size = UDim2.fromOffset(16, 16),
-			Font = Enum.Font.GothamBold,
-			Text = "⌄",
-			TextColor3 = Theme.SubText,
-			TextSize = 12,
-			Rotation = 180,
+			Image = ASSETS.ChevronCollapsed,
+			ImageColor3 = Theme.SubText,
 		})
 
 		local SubList = create("Frame", {
@@ -579,7 +590,7 @@ function Exodus:Init(config)
 
 		local function setExpanded(state)
 			expanded = state
-			tween(Chevron, { Rotation = state and 0 or 180 }, 0.25)
+			Chevron.Image = state and ASSETS.ChevronExpanded or ASSETS.ChevronCollapsed
 			if state then
 				tween(SubList, { Size = UDim2.new(1, 0, 0, SubInner.AbsoluteSize.Y) }, 0.22)
 			else
@@ -703,7 +714,7 @@ function Exodus:Init(config)
 			function TabAPI:Section(sectionOpts)
 				sectionOpts = sectionOpts or {}
 				local sectionName = sectionOpts.Name or "Section"
-				local sectionIcon = sectionOpts.Icon
+				local sectionIcon = sectionOpts.Icon or ASSETS.SectionIcon  -- default to list icon
 
 				local parentColumn = nextPageColumn()
 
@@ -730,16 +741,15 @@ function Exodus:Init(config)
 					Parent = TitleRow,
 					BackgroundTransparency = 1,
 					Size = UDim2.fromOffset(14, 14),
-					Image = sectionIcon or "",
+					Image = sectionIcon,
 					ImageColor3 = Theme.SubText,
-					Visible = sectionIcon ~= nil,
 				})
 
 				create("TextLabel", {
 					Parent = TitleRow,
 					BackgroundTransparency = 1,
-					Position = UDim2.new(0, sectionIcon and 20 or 0, 0, 0),
-					Size = UDim2.new(1, -(sectionIcon and 20 or 0), 1, 0),
+					Position = UDim2.new(0, 20, 0, 0),
+					Size = UDim2.new(1, -20, 1, 0),
 					Font = Enum.Font.GothamBold,
 					Text = sectionName,
 					TextColor3 = Theme.Text,
@@ -781,6 +791,157 @@ function Exodus:Init(config)
 						BackgroundTransparency = 1,
 						Size = UDim2.new(1, 0, 0, height or 26),
 					})
+				end
+
+				-- Dropdown helper: returns a selector button and a close function
+				local function styledDropdownList(Row, options, isMulti, callback)
+					local Selector = create("TextButton", {
+						Parent = Row,
+						BackgroundColor3 = Theme.Off,
+						BackgroundTransparency = 0.15,
+						AutoButtonColor = false,
+						AnchorPoint = Vector2.new(1, 0.5),
+						Position = UDim2.new(1, 0, 0.5, 0),
+						Size = UDim2.fromOffset(110, 22),
+						Font = Enum.Font.Gotham,
+						Text = isMulti and "None" or "Select",
+						TextColor3 = Theme.Text,
+						TextSize = 11,
+						ClipsDescendants = true,
+					})
+					corner(Selector, 6)
+					stroke(Selector, Theme.StrokeDim, 1, 0.4)
+					Selector.TextXAlignment = Enum.TextXAlignment.Left
+					pad(Selector, 8, 8, 0, 0)
+
+					-- Use a global overlay for dropdown lists to avoid clipping
+					local ListFrame = create("Frame", {
+						Parent = ScreenGui,  -- top-level to avoid clipping
+						BackgroundColor3 = Theme.Elevated,
+						BorderSizePixel = 0,
+						Size = UDim2.new(0, 110, 0, 0),
+						ClipsDescendants = true,
+						ZIndex = 100,
+						Visible = false,
+					})
+					corner(ListFrame, 6)
+					stroke(ListFrame, Theme.StrokeDim, 1)
+					vlist(ListFrame, 2)
+					pad(ListFrame, 4, 4, 4, 4)
+
+					local open = false
+					local optionButtons = {}
+					local selected = {}
+
+					local function close()
+						open = false
+						ListFrame.Visible = false
+						-- remove from openDropdowns
+						for i, dd in ipairs(openDropdowns) do
+							if dd == close then
+								table.remove(openDropdowns, i)
+								break
+							end
+						end
+					end
+
+					local function openList()
+						-- close all others
+						closeAllDropdowns(close)
+						open = true
+						ListFrame.Visible = true
+						local h = math.min(#options * 24 + 8, 160)
+						ListFrame.Size = UDim2.new(0, 110, 0, h)
+						-- position below the selector
+						local selPos = Selector.AbsolutePosition
+						local selSize = Selector.AbsoluteSize
+						local screenSize = ScreenGui.AbsoluteSize
+						local x = math.clamp(selPos.X + selSize.X - 110, 4, screenSize.X - 114)
+						local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - h - 4)
+						ListFrame.Position = UDim2.fromOffset(x, y)
+						-- add to open list
+						table.insert(openDropdowns, close)
+					end
+
+					local function refreshLabel()
+						if isMulti then
+							local count = 0
+							for _, v in pairs(selected) do
+								if v then count += 1 end
+							end
+							Selector.Text = count == 0 and "None" or (count .. " selected")
+						end
+					end
+
+					for i, optName in ipairs(options) do
+						local OptBtn = create("TextButton", {
+							Parent = ListFrame,
+							BackgroundColor3 = Highlight,
+							BackgroundTransparency = 1,
+							AutoButtonColor = false,
+							Size = UDim2.new(1, 0, 0, 22),
+							Font = Enum.Font.Gotham,
+							Text = "  " .. optName,
+							TextColor3 = Theme.SubText,
+							TextSize = 12,
+							TextXAlignment = Enum.TextXAlignment.Left,
+							LayoutOrder = i,
+						})
+						corner(OptBtn, 5)
+						optionButtons[optName] = OptBtn
+
+						OptBtn.MouseEnter:Connect(function()
+							if not selected[optName] then
+								tween(OptBtn, { BackgroundTransparency = 0.85 }, 0.15)
+							end
+						end)
+						OptBtn.MouseLeave:Connect(function()
+							if not selected[optName] then
+								tween(OptBtn, { BackgroundTransparency = 1 }, 0.15)
+							end
+						end)
+
+						OptBtn.MouseButton1Click:Connect(function()
+							if isMulti then
+								if selected[optName] then
+									selected[optName] = nil
+									tween(OptBtn, { BackgroundTransparency = 1 }, 0.15)
+									tween(OptBtn, { TextColor3 = Theme.SubText }, 0.15)
+								else
+									selected[optName] = true
+									tween(OptBtn, { BackgroundTransparency = 0 }, 0.15)
+									tween(OptBtn, { TextColor3 = Color3.fromRGB(10, 10, 10) }, 0.15)
+								end
+								refreshLabel()
+								local list = {}
+								for _, n in ipairs(options) do
+									if selected[n] then
+										table.insert(list, n)
+									end
+								end
+								task.spawn(callback, list)
+							else
+								for _, btn in pairs(optionButtons) do
+									tween(btn, { BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
+								end
+								tween(OptBtn, { BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(10, 10, 10) }, 0.15)
+								Selector.Text = optName
+								close()
+								task.spawn(callback, optName)
+							end
+						end)
+					end
+
+					Selector.MouseButton1Click:Connect(function()
+						if open then
+							close()
+						else
+							openList()
+						end
+					end)
+
+					-- return the selector and a close function
+					return Selector, close
 				end
 
 				function SectionAPI:Button(o)
@@ -1102,26 +1263,6 @@ function Exodus:Init(config)
 					return { Row = Row }
 				end
 
-				local function pillButton(parent, text)
-					local Pill = create("TextButton", {
-						Parent = parent,
-						BackgroundColor3 = Theme.Off,
-						BackgroundTransparency = 0.15,
-						AutoButtonColor = false,
-						AnchorPoint = Vector2.new(1, 0.5),
-						Position = UDim2.new(1, 0, 0.5, 0),
-						Size = UDim2.fromOffset(90, 22),
-						Font = Enum.Font.Gotham,
-						Text = text,
-						TextColor3 = Theme.Text,
-						TextSize = 11,
-						ClipsDescendants = true,
-					})
-					corner(Pill, 6)
-					stroke(Pill, Theme.StrokeDim, 1, 0.4)
-					return Pill
-				end
-
 				function SectionAPI:Keybind(o)
 					o = o or {}
 					local label = o.Name or "Keybind"
@@ -1142,7 +1283,22 @@ function Exodus:Init(config)
 						TextXAlignment = Enum.TextXAlignment.Left,
 					})
 
-					local KeyBox = pillButton(Row, currentKey.Name)
+					local KeyBox = create("TextButton", {
+						Parent = Row,
+						BackgroundColor3 = Theme.Off,
+						BackgroundTransparency = 0.15,
+						AutoButtonColor = false,
+						AnchorPoint = Vector2.new(1, 0.5),
+						Position = UDim2.new(1, 0, 0.5, 0),
+						Size = UDim2.fromOffset(90, 22),
+						Font = Enum.Font.Gotham,
+						Text = currentKey.Name,
+						TextColor3 = Theme.Text,
+						TextSize = 11,
+						ClipsDescendants = true,
+					})
+					corner(KeyBox, 6)
+					stroke(KeyBox, Theme.StrokeDim, 1, 0.4)
 
 					KeyBox.MouseButton1Click:Connect(function()
 						listening = true
@@ -1353,7 +1509,7 @@ function Exodus:Init(config)
 						SortOrder = Enum.SortOrder.LayoutOrder,
 					})
 
-					local function rgbField(text)
+					local function rgbField(placeholderText)
 						local Holder = create("Frame", {
 							Parent = RGBRow,
 							BackgroundColor3 = Theme.Off,
@@ -1367,17 +1523,20 @@ function Exodus:Init(config)
 							BackgroundTransparency = 1,
 							Size = UDim2.fromScale(1, 1),
 							Font = Enum.Font.Gotham,
-							Text = text,
+							Text = "",
+							PlaceholderText = placeholderText,
+							PlaceholderColor3 = Theme.SubText,
 							TextColor3 = Theme.Text,
 							TextSize = 12,
 							ClearTextOnFocus = false,
+							TextXAlignment = Enum.TextXAlignment.Center,
 						})
 						return Box
 					end
 
-					local RBox = rgbField(tostring(math.floor(current.R * 255)))
-					local GBox = rgbField(tostring(math.floor(current.G * 255)))
-					local BBox = rgbField(tostring(math.floor(current.B * 255)))
+					local RBox = rgbField("R")
+					local GBox = rgbField("G")
+					local BBox = rgbField("B")
 
 					local updating = false
 
@@ -1474,10 +1633,10 @@ function Exodus:Init(config)
 						end
 					end
 
+					-- Only open on click, never toggle
 					Swatch.MouseButton1Click:Connect(function()
 						if Popup.Visible then
-							closePopup()
-							return
+							return  -- do nothing, only close via outside click
 						end
 						local pos = Swatch.AbsolutePosition
 						local screenSize = ScreenGui.AbsoluteSize
@@ -1500,129 +1659,7 @@ function Exodus:Init(config)
 					return { Row = Row }
 				end
 
-				local function styledDropdownList(Row, options, isMulti, callback)
-					local Selector = pillButton(Row, isMulti and "None" or "Select")
-					Selector.Size = UDim2.fromOffset(110, 22)
-					Selector.TextXAlignment = Enum.TextXAlignment.Left
-					pad(Selector, 8, 8, 0, 0)
-
-					local ListFrame = create("Frame", {
-						Parent = Row,
-						BackgroundColor3 = Theme.Elevated,
-						BorderSizePixel = 0,
-						AnchorPoint = Vector2.new(1, 0),
-						Position = UDim2.new(1, 0, 1, 4),
-						Size = UDim2.new(0, 110, 0, 0),
-						ClipsDescendants = true,
-						ZIndex = 30,
-						Visible = false,
-					})
-					corner(ListFrame, 6)
-					stroke(ListFrame, Theme.StrokeDim, 1)
-					vlist(ListFrame, 2)
-					pad(ListFrame, 4, 4, 4, 4)
-
-					local open = false
-					local optionButtons = {}
-					local selected = {}
-
-					local function close()
-						open = false
-						tween(ListFrame, { Size = UDim2.new(0, 110, 0, 0) }, 0.2)
-						task.delay(0.2, function()
-							if not open then
-								ListFrame.Visible = false
-							end
-						end)
-					end
-
-					local function openList()
-						open = true
-						ListFrame.Visible = true
-						local h = math.min(#options * 24 + 8, 160)
-						tween(ListFrame, { Size = UDim2.new(0, 110, 0, h) }, 0.2)
-					end
-
-					local function refreshLabel()
-						if isMulti then
-							local count = 0
-							for _, v in pairs(selected) do
-								if v then count += 1 end
-							end
-							Selector.Text = count == 0 and "None" or (count .. " selected")
-						end
-					end
-
-					for i, optName in ipairs(options) do
-						local OptBtn = create("TextButton", {
-							Parent = ListFrame,
-							BackgroundColor3 = Highlight,
-							BackgroundTransparency = 1,
-							AutoButtonColor = false,
-							Size = UDim2.new(1, 0, 0, 22),
-							Font = Enum.Font.Gotham,
-							Text = "  " .. optName,
-							TextColor3 = Theme.SubText,
-							TextSize = 12,
-							TextXAlignment = Enum.TextXAlignment.Left,
-							LayoutOrder = i,
-						})
-						corner(OptBtn, 5)
-						optionButtons[optName] = OptBtn
-
-						OptBtn.MouseEnter:Connect(function()
-							if not selected[optName] then
-								tween(OptBtn, { BackgroundTransparency = 0.85 }, 0.15)
-							end
-						end)
-						OptBtn.MouseLeave:Connect(function()
-							if not selected[optName] then
-								tween(OptBtn, { BackgroundTransparency = 1 }, 0.15)
-							end
-						end)
-
-						OptBtn.MouseButton1Click:Connect(function()
-							if isMulti then
-								if selected[optName] then
-									selected[optName] = nil
-									tween(OptBtn, { BackgroundTransparency = 1 }, 0.15)
-									tween(OptBtn, { TextColor3 = Theme.SubText }, 0.15)
-								else
-									selected[optName] = true
-									tween(OptBtn, { BackgroundTransparency = 0 }, 0.15)
-									tween(OptBtn, { TextColor3 = Color3.fromRGB(10, 10, 10) }, 0.15)
-								end
-								refreshLabel()
-								local list = {}
-								for _, n in ipairs(options) do
-									if selected[n] then
-										table.insert(list, n)
-									end
-								end
-								task.spawn(callback, list)
-							else
-								for _, btn in pairs(optionButtons) do
-									tween(btn, { BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
-								end
-								tween(OptBtn, { BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(10, 10, 10) }, 0.15)
-								Selector.Text = optName
-								close()
-								task.spawn(callback, optName)
-							end
-						end)
-					end
-
-					Selector.MouseButton1Click:Connect(function()
-						if open then
-							close()
-						else
-							openList()
-						end
-					end)
-
-					return Selector
-				end
-
+				-- Dropdown and MultiDropdown now use the same helper with mutual exclusion
 				function SectionAPI:Dropdown(o)
 					o = o or {}
 					local label = o.Name or "Dropdown"
