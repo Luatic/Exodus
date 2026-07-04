@@ -237,8 +237,8 @@ function Exodus:Init(config)
     local Avatar = create("ImageLabel", {
         Parent = SidebarHeader,
         BackgroundColor3 = Theme.Off,
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, -12, 0, 12),
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -12, 0.5, -IconSize/2), -- changed
         Size = UDim2.fromOffset(IconSize, IconSize),
         Image = LogoId or getAvatar(LocalPlayer.UserId),
     })
@@ -248,7 +248,7 @@ function Exodus:Init(config)
     create("TextLabel", {
         Parent = SidebarHeader,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 10),
+        Position = UDim2.new(0, 12, 0, 24),   -- from 10 to 24
         Size = UDim2.new(1, -(IconSize + 24), 0, 18),
         Font = Enum.Font.GothamBold,
         Text = WindowName,
@@ -260,7 +260,7 @@ function Exodus:Init(config)
     create("TextLabel", {
         Parent = SidebarHeader,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 28),
+        Position = UDim2.new(0, 12, 0, 44),  -- from 28 to 44
         Size = UDim2.new(1, -(IconSize + 24), 0, 14),
         Font = Enum.Font.Gotham,
         Text = Handle,
@@ -361,7 +361,8 @@ function Exodus:Init(config)
     local HeaderTitle = create("TextLabel", {
         Parent = ContentHeader,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 18),
+        Position = UDim2.new(0, 0, 0, 10),   -- from 0 to 10
+        Size = UDim2.new(1, 0, 0, 18),        
         Font = Enum.Font.GothamBold,
         Text = "",
         TextColor3 = Theme.Text,
@@ -372,7 +373,7 @@ function Exodus:Init(config)
     local HeaderDesc = create("TextLabel", {
         Parent = ContentHeader,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 26),
+        Position = UDim2.new(0, 0, 0, 30),   -- from 26 to 30
         Size = UDim2.new(1, 0, 0, 14),
         Font = Enum.Font.Gotham,
         Text = "",
@@ -721,10 +722,11 @@ function Exodus:Init(config)
                 for name, t in pairs(Window._tabs) do
                     if t.page then t.page.Visible = false end
                     if t.button then
-                        t.button.BackgroundColor3 = Theme.Off
-                        t.button.BackgroundTransparency = 1
-                        t.label.TextColor3 = Theme.SubText
-                        t.tabIcon.ImageColor3 = Theme.SubText
+                        -- In selectTab, after clearing, set new tab properties directly:
+                        TabButton.BackgroundColor3 = Highlight
+                        TabButton.BackgroundTransparency = 0
+                        TabLabel.TextColor3 = Color3.fromRGB(10, 10, 10)
+                        TabIconImage.ImageColor3 = Color3.fromRGB(10, 10, 10)
                     end
                 end
                 Page.Visible = true
@@ -758,6 +760,8 @@ function Exodus:Init(config)
             if firstTabEver then
                 firstTabEver = false
                 setExpanded(true)
+                task.wait()   -- allow layout to compute
+                refreshHeight()
                 selectTab()
             end
 
@@ -853,7 +857,7 @@ function Exodus:Init(config)
                         AutoButtonColor = false,
                         AnchorPoint = Vector2.new(1, 0.5),
                         Position = UDim2.new(1, 0, 0.5, 0),
-                        Size = UDim2.fromOffset(140, 22),
+                        Size = UDim2.fromOffset(100, 22),
                         Font = Enum.Font.Gotham,
                         Text = isMulti and "None" or "Select",
                         TextColor3 = Theme.Text,
@@ -869,7 +873,7 @@ function Exodus:Init(config)
                         Parent = ScreenGui,
                         BackgroundColor3 = Theme.Elevated,
                         BorderSizePixel = 0,
-                        Size = UDim2.new(0, 140, 0, 0),
+                        Size = UDim2.new(0, 100, 0, 0),
                         ClipsDescendants = true,
                         ZIndex = 100,
                         Visible = false,
@@ -907,6 +911,10 @@ function Exodus:Init(config)
                         local screenSize = ScreenGui.AbsoluteSize
                         local x = math.clamp(selPos.X + selSize.X - 110, 4, screenSize.X - 114)
                         local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - h - 4)
+                        --[[
+                        local x = math.clamp(selPos.X, 4, screenSize.X - 100 - 4)  -- left align with selector
+                        local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - h - 4)
+                        --]]
                         ListFrame.Position = UDim2.fromOffset(x, y)
                         table.insert(openDropdowns, close)
                     end
@@ -972,7 +980,7 @@ function Exodus:Init(config)
                                 for _, btn in pairs(optionButtons) do
                                     tween(btn, { BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
                                 end
-                                tween(OptBtn, {  BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
+                                tween(OptBtn, {  BackgroundTransparency = 0, TextColor3 = Theme.Text }, 0.15)
                                 Selector.Text = optName
                                 close()
                                 task.spawn(callback, optName)
@@ -1136,16 +1144,16 @@ function Exodus:Init(config)
                     local Box = create("TextBox", {
                         Parent = InputBG,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 0, 0, 0), -- 0, 8, 0, 0
-                        Size = UDim2.new(1, 0, 1, 0), -- 1,-16,1,0
+                        Position = UDim2.new(0, 0, 0, 0),
+                        Size = UDim2.new(1, 0, 1, 0),
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        TextYAlignment = Enum.TextYAlignment.Center,
                         Font = Enum.Font.Gotham,
                         PlaceholderText = placeholder,
                         PlaceholderColor3 = Theme.SubText,
                         Text = "",
                         TextColor3 = Theme.Text,
                         TextSize = 12,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                        TextYAlignment = Enum.TextYAlignment.Center,
                         ClearTextOnFocus = false,
                         ClipsDescendants = true,
                     })
