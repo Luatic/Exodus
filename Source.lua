@@ -233,19 +233,21 @@ function Exodus:Init(config)
         Size = UDim2.new(0, 1, 1, 0),
     })
 
-    -- Sidebar header (vertically centered)
+    -- Sidebar header – both text and avatar are vertically centered
     local SidebarHeader = create("Frame", {
         Parent = Sidebar,
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 56),
     })
 
-    -- Text group (window name + handle)
+    -- Text group (window name + handle) – anchored to vertical center
     local TextGroup = create("Frame", {
         Parent = SidebarHeader,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -(IconSize + 24), 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
+        Size = UDim2.new(1, -(IconSize + 24), 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        AnchorPoint = Vector2.new(0, 0.5),
+        Position = UDim2.new(0, 12, 0.5, 0),
     })
     vlist(TextGroup, 2)
     create("TextLabel", {
@@ -393,9 +395,9 @@ function Exodus:Init(config)
         Size = UDim2.new(1, 0, 1, -51),
     })
 
-    -- Resize handles: bottom, right, and corner
-    local function makeResizeHandle(parent, anchor, position, size, cursor)
-        local handle = create("Frame", {
+    -- Resize handles (no cursor changes – just drag logic)
+    local function makeResizeHandle(parent, anchor, position, size)
+        return create("Frame", {
             Parent = parent,
             BackgroundTransparency = 1,
             AnchorPoint = anchor,
@@ -403,24 +405,10 @@ function Exodus:Init(config)
             Size = size,
             ZIndex = 20,
         })
-        if cursor then
-            handle.MouseEnter:Connect(function()
-                UIS.MouseIconEnabled = true
-                UIS.MouseBehavior = cursor
-            end)
-            handle.MouseLeave:Connect(function()
-                UIS.MouseIconEnabled = false
-                UIS.MouseBehavior = Enum.MouseBehavior.Default
-            end)
-        end
-        return handle
     end
 
-    -- Bottom edge handle (resize vertically)
-    local bottomHandle = makeResizeHandle(Main, Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, 0), UDim2.new(1, -20, 0, 6), Enum.MouseBehavior.ResizeTopBottom)
-    -- Right edge handle (resize horizontally)
-    local rightHandle = makeResizeHandle(Main, Vector2.new(1, 0.5), UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 6, 1, -20), Enum.MouseBehavior.ResizeLeftRight)
-    -- Corner grip (already exists, but we'll keep it)
+    local bottomHandle = makeResizeHandle(Main, Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, 0), UDim2.new(1, -20, 0, 6))
+    local rightHandle = makeResizeHandle(Main, Vector2.new(1, 0.5), UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 6, 1, -20))
     local ResizeGrip = create("Frame", {
         Parent = Main,
         BackgroundTransparency = 1,
@@ -439,14 +427,6 @@ function Exodus:Init(config)
         TextTransparency = 0.5,
         TextSize = 16,
     })
-    ResizeGrip.MouseEnter:Connect(function()
-        UIS.MouseIconEnabled = true
-        UIS.MouseBehavior = Enum.MouseBehavior.ResizeBottomRight
-    end)
-    ResizeGrip.MouseLeave:Connect(function()
-        UIS.MouseIconEnabled = false
-        UIS.MouseBehavior = Enum.MouseBehavior.Default
-    end)
 
     local dragging, dragStart, startPos = false, nil, nil
     local resizing, resizeStart, startSize, resizeType = false, nil, nil, nil
@@ -1347,8 +1327,8 @@ function Exodus:Init(config)
                     create("Frame", {
                         Parent = Row,
                         BackgroundColor3 = Highlight,
-                        Position = UDim2.new(0, -8, 0, 0), -- Y=0 aligns with top
-                        Size = UDim2.fromOffset(2, 14),   -- same height as heading
+                        Position = UDim2.new(0, -8, 0, 0),
+                        Size = UDim2.fromOffset(2, 14),
                     })
 
                     create("TextLabel", {
