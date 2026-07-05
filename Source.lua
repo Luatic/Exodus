@@ -661,7 +661,7 @@ function Exodus:Init(config)
 
         local function refreshHeight()
             if expanded then
-                SubList.Size = UDim2.new(1, 0, 0, SubInner.AbsoluteSize.Y)
+                tween(SubList, { Size = UDim2.new(1, 0, 0, SubInner.AbsoluteSize.Y) }, 0.22)
             end
         end
         SubInner:GetPropertyChangedSignal("AbsoluteSize"):Connect(refreshHeight)
@@ -754,7 +754,7 @@ function Exodus:Init(config)
             })
 
             local tabData = { sections = {} }
-            Window._tabs[tabName] = tabData
+            table.insert(Window._tabs, tabData)
 
             local function selectTab()
                 -- Close any open dropdowns
