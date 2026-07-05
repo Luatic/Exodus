@@ -359,10 +359,25 @@ function Exodus:Init(config)
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 50),
     })
-    pad(ContentHeader, 18, 18, 8, 0)
-
-    local HeaderTitle = create("TextLabel", {
+    pad(ContentHeader, 18, 18, 0, 0)
+    
+    -- Create a container to vertically center the text
+    local HeaderTextContainer = create("Frame", {
         Parent = ContentHeader,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+    })
+    
+    local headerLayout = create("UIListLayout", {
+        Parent = HeaderTextContainer,
+        FillDirection = Enum.FillDirection.Vertical,
+        Padding = UDim.new(0, 2),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+    })
+    
+    local HeaderTitle = create("TextLabel", {
+        Parent = HeaderTextContainer,
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 18),
         Font = Enum.Font.GothamBold,
@@ -370,13 +385,12 @@ function Exodus:Init(config)
         TextColor3 = Theme.Text,
         TextSize = 17,
         TextXAlignment = Enum.TextXAlignment.Left,
-        Position = UDim2.new(0, 0, 0, 8),
+        LayoutOrder = 1,
     })
-
+    
     local HeaderDesc = create("TextLabel", {
-        Parent = ContentHeader,
+        Parent = HeaderTextContainer,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 28),
         Size = UDim2.new(1, 0, 0, 14),
         Font = Enum.Font.Gotham,
         Text = "",
@@ -384,6 +398,7 @@ function Exodus:Init(config)
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
         Visible = false,
+        LayoutOrder = 2,
     })
 
     create("Frame", {
