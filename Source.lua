@@ -412,7 +412,26 @@ function Exodus:Init(config)
         ClipsDescendants = true,   -- add this
     })
 
-    
+    local SearchResultsPage = create("ScrollingFrame", {
+        Name = "SearchResultsPage",
+        Parent = PageHolder,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Size = UDim2.fromScale(1, 1),
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = Theme.StrokeDim,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        Visible = false,
+    })
+    local SearchResultsInner = create("Frame", {
+        Parent = SearchResultsPage,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 18, 0, 14),
+        Size = UDim2.new(1, -36, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+    })
+    vlist(SearchResultsInner, 10)
     
     -- Resize handles (no cursor changes – just drag logic)
     local function makeResizeHandle(parent, anchor, position, size)
@@ -523,7 +542,27 @@ function Exodus:Init(config)
             end
         end
     end)
-    
+
+    local minimized = false
+
+    local function setMinimized(state)
+        minimized = state
+        if state then
+            Main.Visible = false
+            closeAllDropdowns() -- Automatically closes dropdowns and color pickers on minimize
+            DropdownBlocker.Visible = false
+        else
+            Main.Visible = true
+            MainScale.Scale = 1
+        end
+    end
+
+    UIS.InputBegan:Connect(function(input, processed)
+        if input.KeyCode == Keybind then
+            setMinimized(not minimized)
+        end
+    end)
+
     local openDropdowns = {}
     local function closeAllDropdowns(exclude)
         for _, dd in ipairs(openDropdowns) do
@@ -532,7 +571,7 @@ function Exodus:Init(config)
             end
         end
     end
-    
+
     local DropdownBlocker = create("TextButton", {
         Parent = ScreenGui,
         BackgroundTransparency = 1,
@@ -546,26 +585,6 @@ function Exodus:Init(config)
         closeAllDropdowns()
         DropdownBlocker.Visible = false
     end)
-    
-    -- NOW define setMinimized and keybind
-    local minimized = false
-    local function setMinimized(state)
-        minimized = state
-        if state then
-            Main.Visible = false
-            closeAllDropdowns()
-            DropdownBlocker.Visible = false
-        else
-            Main.Visible = true
-            MainScale.Scale = 1
-        end
-    end
-    
-    UIS.InputBegan:Connect(function(input, processed)
-        if input.KeyCode == Keybind then
-            setMinimized(not minimized)
-        end
-    end)
 
     local Window = {}
     Window._searchIndex = {}
@@ -575,43 +594,114 @@ function Exodus:Init(config)
 
     local function applySearch(query)
         query = query:lower()
-    
-        -- First, hide all normal tab pages if searching
+        
         if query ~= "" then
-            for _, tabData in pairs(Window._tabs) do
+            -- Hide all tab pages
+            for _, tabData in ipairs(Window._tabs) do
                 if tabData.page then tabData.page.Visible = false end
             end
+            SearchResultsPage.Visible = true
+            
+            -- Clear previous results
+            for _, child in ipairs(SearchResultsInner:GetChildren()) do
+                child:Destroy()
+            end
+            
+            -- Group matching entries by sectionFrame
+            local groups = {}
+            for _, entry in ipairs(Window._searchIndex) do
+                local visible = entry.text:lower():find(query, 1, true) ~= nil
+                if visible then
+                    local key = entry.sectionFrame
+                    if not groups[key] then
+                        groups[key] = { entries = {}, sectionName = entry.sectionName, sectionIcon = entry.sectionIcon }
+                    end
+                    table.insert(groups[key].entries, entry)
+                end
+            end
+            
+            -- Build grouped layout
+            for sectionFrame, group in pairs(groups) do
+                -- Create a new SectionFrame (full width, inside SearchResultsInner)
+                local newSection = create("Frame", {
+                    Parent = SearchResultsInner,
+                    BackgroundColor3 = Theme.Panel,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                })
+                corner(newSection, 10)
+                stroke(newSection, Theme.StrokeDim, 1, 0.2)
+                pad(newSection, 14, 14, 12, 14)
+                vlist(newSection, 12)
+                
+                -- Title row
+                local TitleRow = create("Frame", {
+                    Parent = newSection,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 16),
+                    LayoutOrder = 1,
+                })
+                create("ImageLabel", {
+                    Parent = TitleRow,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.fromOffset(14, 14),
+                    Image = group.sectionIcon or ASSETS.SectionIcon,
+                    ImageColor3 = Theme.SubText,
+                })
+                create("TextLabel", {
+                    Parent = TitleRow,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 20, 0, 0),
+                    Size = UDim2.new(1, -20, 1, 0),
+                    Font = Enum.Font.GothamBold,
+                    Text = group.sectionName,
+                    TextColor3 = Theme.Text,
+                    TextSize = 13,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                })
+                create("Frame", {
+                    Parent = newSection,
+                    BackgroundColor3 = Theme.StrokeDim,
+                    BackgroundTransparency = 0.5,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 1),
+                    LayoutOrder = 2,
+                })
+                
+                -- RowHolder for this section's entries
+                local newRowHolder = create("Frame", {
+                    Parent = newSection,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    LayoutOrder = 3,
+                })
+                vlist(newRowHolder, 10)
+                
+                -- Reparent each matching entry into this RowHolder
+                for _, entry in ipairs(group.entries) do
+                    entry.frame.Parent = newRowHolder
+                    entry.frame.Visible = true
+                end
+            end
         else
-            -- Show the active tab page
+            -- Restore normal view
+            SearchResultsPage.Visible = false
             if Window._activeTab then
                 Window._activeTab.Visible = true
             end
-            -- Make all sections visible again
-            for _, tabData in pairs(Window._tabs) do
+            
+            -- Return all frames to their original parents
+            for _, entry in ipairs(Window._searchIndex) do
+                entry.frame.Parent = entry.originalParent
+                entry.frame.Visible = true
+            end
+            
+            -- Ensure all sections are visible
+            for _, tabData in ipairs(Window._tabs) do
                 for _, sec in ipairs(tabData.sections) do
                     sec.frame.Visible = true
-                end
-            end
-        end
-    
-        -- Loop over all searchable entries and toggle visibility
-        for _, entry in ipairs(Window._searchIndex) do
-            local visible = query == "" or entry.text:lower():find(query, 1, true) ~= nil
-            entry.frame.Visible = visible
-        end
-    
-        -- Hide sections that have no visible children (only when searching)
-        if query ~= "" then
-            for _, tabData in pairs(Window._tabs) do
-                for _, sec in ipairs(tabData.sections) do
-                    local hasVisible = false
-                    for _, entry in ipairs(sec.entries) do
-                        if entry.frame.Visible then
-                            hasVisible = true
-                            break
-                        end
-                    end
-                    sec.frame.Visible = hasVisible
                 end
             end
         end
@@ -778,7 +868,7 @@ function Exodus:Init(config)
                 Size = UDim2.new(1, 0, 0, 6),
             })
 
-            local tabData = { sections = {} }
+            local tabData = { sections = {}, name = tabName, page = Page, button = TabButton, label = TabLabel, tabIcon = TabIconImage }
             table.insert(Window._tabs, tabData)
 
             local function selectTab()
@@ -799,7 +889,7 @@ function Exodus:Init(config)
                 end
                
                 -- Hide all pages and reset all tabs
-                for name, t in pairs(Window._tabs) do
+                for _, t in ipairs(Window._tabs) do
                     if t.page then
                         t.page.Visible = false
                     end
@@ -825,12 +915,12 @@ function Exodus:Init(config)
                     setExpanded(true)
                 end
             end
-
+--[[
             tabData.page = Page
             tabData.button = TabButton
             tabData.label = TabLabel
             tabData.tabIcon = TabIconImage
-
+--]]
             TabButton.MouseButton1Click:Connect(selectTab)
             TabButton.MouseEnter:Connect(function()
                 if Page.Visible then return end
@@ -919,7 +1009,14 @@ function Exodus:Init(config)
                 local SectionAPI = {}
 
                 local function registerSearch(frame, text)
-                    table.insert(Window._searchIndex, { frame = frame, text = text })
+                    table.insert(Window._searchIndex, { 
+                        frame = frame, 
+                        text = text, 
+                        originalParent = frame.Parent,
+                        sectionFrame = SectionFrame,    -- the actual SectionFrame
+                        sectionName = sectionName,
+                        sectionIcon = sectionIcon
+                    })
                     table.insert(sectionData.entries, { frame = frame, text = text })
                 end
 
@@ -973,15 +1070,6 @@ function Exodus:Init(config)
                     vlist(ListFrame, 2)
                     pad(ListFrame, 4, 4, 4, 4)
 
-                    local DropdownBlockerInside = create("TextButton", {
-                        Parent = ListFrame,
-                        BackgroundTransparency = 1,
-                        Size = UDim2.fromScale(1, 1),
-                        Text = "",
-                        AutoButtonColor = false,
-                        ZIndex = 0,
-                    })
-                    
                     local open = false
                     local optionButtons = {}
                     local selected = {}
@@ -1588,15 +1676,6 @@ function Exodus:Init(config)
                     stroke(Popup, Theme.StrokeDim, 1)
                     pad(Popup, 14, 14, 14, 14)
                     vlist(Popup, 10)
-
-                    local ClickBlocker = create("TextButton", {
-                        Parent = Popup,
-                        BackgroundTransparency = 1,
-                        Size = UDim2.fromScale(1, 1),
-                        Text = "",
-                        AutoButtonColor = false,
-                        ZIndex = 0, -- behind everything else
-                    })
                 
                     local hue, sat, val = 0, 0, 1
                     do
