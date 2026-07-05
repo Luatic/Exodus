@@ -241,13 +241,20 @@ function Exodus:Init(config)
     })
 
     -- Text group (window name + handle) – anchored to vertical center
+    -- Text group (window name + handle) – vertically centered using manual padding
     local TextGroup = create("Frame", {
         Parent = SidebarHeader,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -(IconSize + 24), 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
-        AnchorPoint = Vector2.new(0, 0.5),
-        Position = UDim2.new(0, 12, 0.5, 0),
+        Size = UDim2.new(1, -(IconSize + 24), 1, 0),
+        Position = UDim2.new(0, 12, 0, 0),
+    })
+    -- Use a UIListLayout to center the text vertically within the TextGroup
+    local textLayout = create("UIListLayout", {
+        Parent = TextGroup,
+        FillDirection = Enum.FillDirection.Vertical,
+        Padding = UDim.new(0, 2),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        VerticalAlignment = Enum.VerticalAlignment.Center, -- This centers the text vertically
     })
     vlist(TextGroup, 2)
     create("TextLabel", {
