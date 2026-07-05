@@ -412,6 +412,27 @@ function Exodus:Init(config)
         ClipsDescendants = true,   -- add this
     })
 
+    local SearchResultsPage = create("ScrollingFrame", {
+        Name = "SearchResultsPage",
+        Parent = PageHolder,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Size = UDim2.fromScale(1, 1),
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = Theme.StrokeDim,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        Visible = false,
+    })
+    local SearchResultsInner = create("Frame", {
+        Parent = SearchResultsPage,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 18, 0, 14),
+        Size = UDim2.new(1, -36, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+    })
+    vlist(SearchResultsInner, 10)
+    
     -- Resize handles (no cursor changes – just drag logic)
     local function makeResizeHandle(parent, anchor, position, size)
         return create("Frame", {
@@ -528,6 +549,8 @@ function Exodus:Init(config)
         minimized = state
         if state then
             Main.Visible = false
+            closeAllDropdowns() -- Automatically closes dropdowns and color pickers on minimize
+            DropdownBlocker.Visible = false
         else
             Main.Visible = true
             MainScale.Scale = 1
@@ -571,21 +594,40 @@ function Exodus:Init(config)
 
     local function applySearch(query)
         query = query:lower()
-        for _, entry in ipairs(Window._searchIndex) do
-            local visible = query == "" or entry.text:lower():find(query, 1, true) ~= nil
-            entry.frame.Visible = visible
-        end
-        for _, tabData in pairs(Window._tabs) do
-            for _, sec in ipairs(tabData.sections) do
-                if query ~= "" then
-                    local sectionHasVisible = false
-                    for _, entry in ipairs(sec.entries) do
-                        if entry.frame.Visible then
-                            sectionHasVisible = true
-                        end
-                    end
-                    sec.frame.Visible = sectionHasVisible
+        
+        if query ~= "" then
+            -- Hide normal view canvases completely
+            for _, tabData in pairs(Window._tabs) do
+                if tabData.page then tabData.page.Visible = false end
+            end
+            SearchResultsPage.Visible = true
+            
+            -- Sort & shift layout items cleanly across all pages to the top left view
+            for _, entry in ipairs(Window._searchIndex) do
+                local visible = entry.text:lower():find(query, 1, true) ~= nil
+                if visible then
+                    entry.frame.Parent = SearchResultsInner
+                    entry.frame.Visible = true
                 else
+                    entry.frame.Visible = false
+                end
+            end
+        else
+            -- Restore active page context
+            SearchResultsPage.Visible = false
+            if Window._activeTab then
+                Window._activeTab.Visible = true
+            end
+            
+            -- Push all components cleanly back to their designated panels
+            for _, entry in ipairs(Window._searchIndex) do
+                entry.frame.Parent = entry.originalParent
+                entry.frame.Visible = true
+            end
+            
+            -- Keep section layout panels default visible
+            for _, tabData in pairs(Window._tabs) do
+                for _, sec in ipairs(tabData.sections) do
                     sec.frame.Visible = true
                 end
             end
@@ -761,6 +803,11 @@ function Exodus:Init(config)
                 closeAllDropdowns()
                 DropdownBlocker.Visible = false
 
+                -- Resets active layout query elements when tabs switch
+                if SearchBox.Text ~= "" then
+                    SearchBox.Text = ""
+                end
+
                 -- Hide all pages (direct children of PageHolder)
                 for _, child in ipairs(PageHolder:GetChildren()) do
                     if child:IsA("ScrollingFrame") then
@@ -889,7 +936,7 @@ function Exodus:Init(config)
                 local SectionAPI = {}
 
                 local function registerSearch(frame, text)
-                    table.insert(Window._searchIndex, { frame = frame, text = text })
+                    table.insert(Window._searchIndex, { frame = frame, text = text, originalParent = frame.Parent })
                     table.insert(sectionData.entries, { frame = frame, text = text })
                 end
 
@@ -1260,10 +1307,11 @@ function Exodus:Init(config)
                     local label = o.Name or "Slider"
                     local min = o.Min or 0
                     local max = o.Max or 100
+                    local decimals = o.Decimals or 0 -- Number of decimal points allowed
                     local default = math.clamp(o.Default or min, min, max)
                     local callback = o.Callback or function() end
                     local value = default
-
+                
                     local Row = newRow(34)
                     create("TextLabel", {
                         Parent = Row,
@@ -1275,6 +1323,7 @@ function Exodus:Init(config)
                         TextSize = 11,
                         TextXAlignment = Enum.TextXAlignment.Left,
                     })
+                    
                     local ValueLabel = create("TextLabel", {
                         Parent = Row,
                         BackgroundTransparency = 1,
@@ -1282,12 +1331,12 @@ function Exodus:Init(config)
                         Position = UDim2.new(1, 0, 0, 0),
                         Size = UDim2.new(0, 70, 0, 13),
                         Font = Enum.Font.GothamBold,
-                        Text = value .. " / " .. max,
+                        Text = string.format("%." .. decimals .. "f", value) .. " / " .. max,
                         TextColor3 = Theme.Text,
                         TextSize = 11,
                         TextXAlignment = Enum.TextXAlignment.Right,
                     })
-
+                
                     local Track = create("Frame", {
                         Parent = Row,
                         BackgroundColor3 = Theme.Off,
@@ -1295,14 +1344,14 @@ function Exodus:Init(config)
                         Size = UDim2.new(1, 0, 0, 8),
                     })
                     corner(Track, 999)
-
+                
                     local Fill = create("Frame", {
                         Parent = Track,
                         BackgroundColor3 = Highlight,
                         Size = UDim2.new((value - min) / (max - min), 0, 1, 0),
                     })
                     corner(Fill, 999)
-
+                
                     local Knob = create("Frame", {
                         Parent = Track,
                         BackgroundColor3 = Color3.fromRGB(240, 240, 240),
@@ -1313,17 +1362,20 @@ function Exodus:Init(config)
                     })
                     corner(Knob, 999)
                     stroke(Knob, Theme.StrokeDim, 1)
-
+                
                     local dragSlider = false
-
+                
                     local function setFromAlpha(alpha)
                         alpha = math.clamp(alpha, 0, 1)
-                        value = math.floor(min + (max - min) * alpha)
-                        Fill.Size = UDim2.new(alpha, 0, 1, 0)
-                        Knob.Position = UDim2.new(alpha, 0, 0.5, 0)
-                        ValueLabel.Text = value .. " / " .. max
+                        local rawValue = min + (max - min) * alpha
+                        local factor = 10 ^ decimals
+                        value = math.floor(rawValue * factor + 0.5) / factor
+                        
+                        Fill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
+                        Knob.Position = UDim2.new((value - min) / (max - min), 0, 0.5, 0)
+                        ValueLabel.Text = string.format("%." .. decimals .. "f", value) .. " / " .. max
                     end
-
+                
                     Track.InputBegan:Connect(function(input)
                         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                             dragSlider = true
@@ -1344,7 +1396,7 @@ function Exodus:Init(config)
                             dragSlider = false
                         end
                     end)
-
+                
                     registerSearch(Row, label)
                     return {
                         Row = Row,
@@ -1353,7 +1405,6 @@ function Exodus:Init(config)
                         end,
                     }
                 end
-
                 function SectionAPI:Paragraph(o)
                     o = o or {}
                     local title = o.Name or "Paragraph"
@@ -1506,7 +1557,7 @@ function Exodus:Init(config)
                     local default = o.Default or Color3.fromRGB(255, 255, 255)
                     local callback = o.Callback or function() end
                     local current = default
-
+                
                     local Row = newRow(24)
                     create("TextLabel", {
                         Parent = Row,
@@ -1518,7 +1569,7 @@ function Exodus:Init(config)
                         TextSize = 13,
                         TextXAlignment = Enum.TextXAlignment.Left,
                     })
-
+                
                     local Swatch = create("TextButton", {
                         Parent = Row,
                         BackgroundColor3 = current,
@@ -1530,26 +1581,28 @@ function Exodus:Init(config)
                     })
                     corner(Swatch, 6)
                     stroke(Swatch, Theme.StrokeDim, 1, 0.2)
-
+                
                     local Popup = create("Frame", {
                         Parent = ScreenGui,
                         BackgroundColor3 = Theme.Panel,
                         BorderSizePixel = 0,
-                        Size = UDim2.fromOffset(210, 300),
+                        Size = UDim2.fromOffset(210, 0), -- Base width, height determined automatically
+                        AutomaticSize = Enum.AutomaticSize.Y, -- FIXES: Extra space below inputs
                         Visible = false,
                         ZIndex = 200,
+                        Active = true, -- FIXES: Keeps gradient clicks from shutting down the popup
                     })
                     corner(Popup, 10)
                     stroke(Popup, Theme.StrokeDim, 1)
                     pad(Popup, 14, 14, 14, 14)
                     vlist(Popup, 10)
-
+                
                     local hue, sat, val = 0, 0, 1
                     do
                         local h, s, v = Color3.toHSV(current)
                         hue, sat, val = h, s, v
                     end
-
+                
                     local Square = create("Frame", {
                         Parent = Popup,
                         BackgroundColor3 = Color3.fromHSV(hue, 1, 1),
@@ -1559,7 +1612,7 @@ function Exodus:Init(config)
                     })
                     corner(Square, 8)
                     stroke(Square, Theme.StrokeDim, 1, 0.2)
-
+                
                     local WhiteOverlay = create("Frame", {
                         Parent = Square,
                         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -1572,9 +1625,9 @@ function Exodus:Init(config)
                         Transparency = NumberSequence.new({
                             NumberSequenceKeypoint.new(0, 0),
                             NumberSequenceKeypoint.new(1, 1),
-                        }),
+                            }),
                     })
-
+                
                     local BlackOverlay = create("Frame", {
                         Parent = Square,
                         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -1588,9 +1641,9 @@ function Exodus:Init(config)
                         Transparency = NumberSequence.new({
                             NumberSequenceKeypoint.new(0, 1),
                             NumberSequenceKeypoint.new(1, 0),
-                        }),
+                            }),
                     })
-
+                
                     local SquareKnob = create("Frame", {
                         Parent = Square,
                         BackgroundTransparency = 1,
@@ -1601,7 +1654,7 @@ function Exodus:Init(config)
                     })
                     corner(SquareKnob, 999)
                     stroke(SquareKnob, Color3.fromRGB(255, 255, 255), 2)
-
+                
                     local HueBar = create("Frame", {
                         Parent = Popup,
                         BorderSizePixel = 0,
@@ -1620,9 +1673,9 @@ function Exodus:Init(config)
                             ColorSequenceKeypoint.new(4 / 6, Color3.fromHSV(4 / 6, 1, 1)),
                             ColorSequenceKeypoint.new(5 / 6, Color3.fromHSV(5 / 6, 1, 1)),
                             ColorSequenceKeypoint.new(1, Color3.fromHSV(1, 1, 1)),
-                        }),
+                            }),
                     })
-
+                
                     local HueKnob = create("Frame", {
                         Parent = HueBar,
                         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -1633,7 +1686,7 @@ function Exodus:Init(config)
                     })
                     corner(HueKnob, 999)
                     stroke(HueKnob, Theme.StrokeDim, 1)
-
+                
                     local InfoRow = create("Frame", {
                         Parent = Popup,
                         BackgroundTransparency = 1,
@@ -1646,7 +1699,7 @@ function Exodus:Init(config)
                         Padding = UDim.new(0, 6),
                         SortOrder = Enum.SortOrder.LayoutOrder,
                     })
-
+                
                     local Preview = create("Frame", {
                         Parent = InfoRow,
                         BackgroundColor3 = current,
@@ -1654,7 +1707,7 @@ function Exodus:Init(config)
                     })
                     corner(Preview, 6)
                     stroke(Preview, Theme.StrokeDim, 1, 0.2)
-
+                
                     local HexBG = create("Frame", {
                         Parent = InfoRow,
                         BackgroundColor3 = Theme.Off,
@@ -1663,12 +1716,12 @@ function Exodus:Init(config)
                     })
                     corner(HexBG, 6)
                     stroke(HexBG, Theme.StrokeDim, 1, 0.4)
-
+                
                     local HexBox = create("TextBox", {
                         Parent = HexBG,
-                        BackgroundTransparency = 1,
                         Position = UDim2.new(0, 8, 0, 0),
                         Size = UDim2.new(1, -16, 1, 0),
+                        BackgroundTransparency = 1,
                         Font = Enum.Font.GothamMedium,
                         Text = "#" .. toHex(current),
                         TextColor3 = Theme.Text,
@@ -1676,7 +1729,7 @@ function Exodus:Init(config)
                         TextXAlignment = Enum.TextXAlignment.Left,
                         ClearTextOnFocus = false,
                     })
-
+                
                     local RGBRow = create("Frame", {
                         Parent = Popup,
                         BackgroundTransparency = 1,
@@ -1689,7 +1742,7 @@ function Exodus:Init(config)
                         Padding = UDim.new(0, 6),
                         SortOrder = Enum.SortOrder.LayoutOrder,
                     })
-
+                
                     local function rgbField(placeholderText)
                         local Holder = create("Frame", {
                             Parent = RGBRow,
@@ -1714,13 +1767,13 @@ function Exodus:Init(config)
                         })
                         return Box
                     end
-
+                
                     local RBox = rgbField("R")
                     local GBox = rgbField("G")
                     local BBox = rgbField("B")
-
+                
                     local updating = false
-
+                
                     local function pushColor(skipFields)
                         current = Color3.fromHSV(hue, sat, val)
                         Swatch.BackgroundColor3 = current
@@ -1736,9 +1789,9 @@ function Exodus:Init(config)
                         end
                         task.spawn(callback, current)
                     end
-
+                
                     local dragSquare, dragHue = false, false
-
+                
                     Square.InputBegan:Connect(function(input)
                         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                             dragSquare = true
@@ -1773,7 +1826,7 @@ function Exodus:Init(config)
                             dragHue = false
                         end
                     end)
-
+                
                     local function applyHex()
                         if updating then return end
                         local hexStr = HexBox.Text:gsub("#", "")
@@ -1787,7 +1840,7 @@ function Exodus:Init(config)
                         end
                     end
                     HexBox.FocusLost:Connect(applyHex)
-
+                
                     local function applyRGB()
                         if updating then return end
                         local r = tonumber(RBox.Text) or 0
@@ -1804,7 +1857,7 @@ function Exodus:Init(config)
                     RBox.FocusLost:Connect(applyRGB)
                     GBox.FocusLost:Connect(applyRGB)
                     BBox.FocusLost:Connect(applyRGB)
-
+                
                     local Blocker = nil
                     local function closePopup()
                         Popup.Visible = false
@@ -1812,18 +1865,28 @@ function Exodus:Init(config)
                             Blocker:Destroy()
                             Blocker = nil
                         end
+                        for i, dd in ipairs(openDropdowns) do
+                            if dd == closePopup then
+                                table.remove(openDropdowns, i)
+                                break
+                            end
+                        end
                     end
-
+                
                     Swatch.MouseButton1Click:Connect(function()
                         if Popup.Visible then
                             return
                         end
+                        closeAllDropdowns() -- Close anything else active
                         local pos = Swatch.AbsolutePosition
                         local screenSize = ScreenGui.AbsoluteSize
                         local px = math.clamp(pos.X - 220, 4, screenSize.X - 214)
                         local py = math.clamp(pos.Y - 40, 4, screenSize.Y - 304)
                         Popup.Position = UDim2.fromOffset(px, py)
                         Popup.Visible = true
+                        
+                        table.insert(openDropdowns, closePopup) -- Tracks popup within the dynamic UI group
+                        
                         Blocker = create("TextButton", {
                             Parent = ScreenGui,
                             BackgroundTransparency = 1,
@@ -1834,7 +1897,7 @@ function Exodus:Init(config)
                         })
                         Blocker.MouseButton1Click:Connect(closePopup)
                     end)
-
+                
                     registerSearch(Row, label)
                     return { Row = Row }
                 end
@@ -1851,7 +1914,7 @@ function Exodus:Init(config)
                         Size = UDim2.new(1, 0, 0, 0),
                         AutomaticSize = Enum.AutomaticSize.Y,
                     })
-                    vlist(Row, 4)
+                    vlist(Row, 8) -- was 4
                 
                     create("TextLabel", {
                         Parent = Row,
