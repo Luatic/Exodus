@@ -978,7 +978,7 @@ function Exodus:Init(config)
                         -- Aligns the list directly under the left edge of the button
                         local x = math.clamp(selPos.X, 4, screenSize.X - listWidth - 4)
                         local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - h - 4)
-                        ListFrame.Position = UDim2.fromOffset(x, y
+                        ListFrame.Position = UDim2.fromOffset(x, y)
                         table.insert(openDropdowns, close)
 
                         -- Refresh highlight states on open
