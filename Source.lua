@@ -354,7 +354,7 @@ function Exodus:Init(config)
     local ContentHeader = create("Frame", {
         Parent = ContentHolder,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 50),
+        Size = UDim2.new(1, 0, 0, 56),
     })
     pad(ContentHeader, 18, 18, 0, 0)
     
@@ -400,15 +400,15 @@ function Exodus:Init(config)
         BackgroundColor3 = Theme.StrokeDim,
         BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 55),
+        Position = UDim2.new(0, 0, 0, 56),
         Size = UDim2.new(1, 0, 0, 1),
     })
 
     local PageHolder = create("Frame", {
         Parent = ContentHolder,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 51),
-        Size = UDim2.new(1, 0, 1, -51),
+        Position = UDim2.new(0, 0, 0, 56),
+        Size = UDim2.new(1, 0, 1, -56),
     })
 
     -- Resize handles (no cursor changes – just drag logic)
@@ -440,7 +440,7 @@ function Exodus:Init(config)
         Font = Enum.Font.GothamBold,
         Text = "⌟",
         TextColor3 = Theme.SubText,
-        TextTransparency = 0.5,
+        TextTransparency = 1,
         TextSize = 16,
     })
 
