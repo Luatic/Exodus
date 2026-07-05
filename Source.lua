@@ -543,26 +543,6 @@ function Exodus:Init(config)
         end
     end)
 
-    local minimized = false
-
-    local function setMinimized(state)
-        minimized = state
-        if state then
-            Main.Visible = false
-            closeAllDropdowns() -- Automatically closes dropdowns and color pickers on minimize
-            DropdownBlocker.Visible = false
-        else
-            Main.Visible = true
-            MainScale.Scale = 1
-        end
-    end
-
-    UIS.InputBegan:Connect(function(input, processed)
-        if input.KeyCode == Keybind then
-            setMinimized(not minimized)
-        end
-    end)
-
     local openDropdowns = {}
     local function closeAllDropdowns(exclude)
         for _, dd in ipairs(openDropdowns) do
@@ -586,6 +566,26 @@ function Exodus:Init(config)
         DropdownBlocker.Visible = false
     end)
 
+    local minimized = false
+
+    local function setMinimized(state)
+        minimized = state
+        if state then
+            Main.Visible = false
+            closeAllDropdowns() -- Automatically closes dropdowns and color pickers on minimize
+            DropdownBlocker.Visible = false
+        else
+            Main.Visible = true
+            MainScale.Scale = 1
+        end
+    end
+
+    UIS.InputBegan:Connect(function(input, processed)
+        if input.KeyCode == Keybind then
+            setMinimized(not minimized)
+        end
+    end)
+    
     local Window = {}
     Window._searchIndex = {}
     Window._tabs = {}
