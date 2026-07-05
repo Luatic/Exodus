@@ -1121,7 +1121,8 @@ function Exodus:Init(config)
                     o = o or {}
                     local label = o.Name or "Button"
                     local callback = o.Callback or function() end
-
+                    local align = o.Alignment or "Center"   -- "Center" by default, can be "Left"
+                
                     local Row = newRow(30)
                     local Btn = create("TextButton", {
                         Parent = Row,
@@ -1133,18 +1134,24 @@ function Exodus:Init(config)
                     })
                     corner(Btn, 8)
                     local btnStroke = stroke(Btn, Theme.StrokeDim, 1, 0.55)
+                
+                    -- Choose alignment settings
+                    local textAlign = (align == "Left") and Enum.TextXAlignment.Left or Enum.TextXAlignment.Center
+                    local labelPosition = (align == "Left") and UDim2.new(0, 10, 0, 0) or UDim2.new(0, 0, 0, 0)
+                    local labelSize = (align == "Left") and UDim2.new(1, -20, 1, 0) or UDim2.new(1, 0, 1, 0)
+                
                     create("TextLabel", {
                         Parent = Btn,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 10, 0, 0),
-                        Size = UDim2.new(1, -20, 1, 0),
+                        Position = labelPosition,
+                        Size = labelSize,
                         Font = Enum.Font.GothamMedium,
                         Text = label,
                         TextColor3 = Theme.Text,
                         TextSize = 13,
-                        TextXAlignment = Enum.TextXAlignment.Left,
+                        TextXAlignment = textAlign,
                     })
-
+                
                     Btn.MouseEnter:Connect(function()
                         tween(Btn, { BackgroundTransparency = 0.92 }, 0.15)
                         tween(btnStroke, { Transparency = 0.1 }, 0.15)
@@ -1159,7 +1166,7 @@ function Exodus:Init(config)
                     Btn.MouseButton1Click:Connect(function()
                         task.spawn(callback)
                     end)
-
+                
                     registerSearch(Row, label)
                     return { Row = Row }
                 end
