@@ -406,7 +406,7 @@ function Exodus:Init(config)
         BackgroundColor3 = Theme.StrokeDim,
         BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 50),
+        Position = UDim2.new(0, 0, 0, 55),
         Size = UDim2.new(1, 0, 0, 1),
     })
 
