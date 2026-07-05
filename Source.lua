@@ -1252,7 +1252,7 @@ function Exodus:Init(config)
                         Size = UDim2.new(1, 0, 0, 0),
                         AutomaticSize = Enum.AutomaticSize.Y,
                     })
-                    vlist(Row, 4)  -- vertical layout with 4px gap
+                    vlist(Row, 8)  -- vertical layout with 4px gap
                 
                     create("TextLabel", {
                         Parent = Row,
@@ -1945,7 +1945,7 @@ function Exodus:Init(config)
                         Size = UDim2.new(1, 0, 0, 0),
                         AutomaticSize = Enum.AutomaticSize.Y,
                     })
-                    vlist(Row, 4)
+                    vlist(Row, 8)
                 
                     create("TextLabel", {
                         Parent = Row,
