@@ -304,13 +304,23 @@ function Exodus:Init(config)
         Size = UDim2.new(1, -20, 0, 30),
     })
     corner(SearchHolder, 8)
+
+    local SearchIcon = create("ImageLabel", {
+        Parent = SearchHolder,
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(0, 0.5),
+        Position = UDim2.new(0, 8, 0.5, 0),
+        Size = UDim2.fromOffset(16, 16),
+        Image = "rbxassetid://121018724060431",
+        ImageColor3 = Theme.SubText,
+    })
     local searchStroke = stroke(SearchHolder, Theme.StrokeDim, 1, 0.3)
 
     local SearchBox = create("TextBox", {
         Parent = SearchHolder,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 10, 0, 0),
-        Size = UDim2.new(1, -20, 1, 0),
+        Position = UDim2.new(0, 30, 0, 0),
+        Size = UDim2.new(1, -34, 1, 0),
         Font = Enum.Font.Gotham,
         PlaceholderText = "Search...",
         PlaceholderColor3 = Theme.SubText,
