@@ -965,15 +965,20 @@ function Exodus:Init(config)
                         open = true
                         ListFrame.Visible = true
                         DropdownBlocker.Visible = true
-                        local h = math.min(#options * 24 + 8, 160)
-                        ListFrame.Size = UDim2.new(0, 140, 0, h)
+                        
                         local selPos = Selector.AbsolutePosition
                         local selSize = Selector.AbsoluteSize
                         local screenSize = ScreenGui.AbsoluteSize
-                        local listWidth = 140
-                        local x = math.clamp(selPos.X + selSize.X - listWidth, 4, screenSize.X - listWidth - 4)
+                        
+                        local h = math.min(#options * 24 + 8, 160)
+                        local listWidth = selSize.X -- Matches the list width to the button width
+                        
+                        ListFrame.Size = UDim2.new(0, listWidth, 0, h)
+                        
+                        -- Aligns the list directly under the left edge of the button
+                        local x = math.clamp(selPos.X, 4, screenSize.X - listWidth - 4)
                         local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - h - 4)
-                        ListFrame.Position = UDim2.fromOffset(x, y)
+                        ListFrame.Position = UDim2.fromOffset(x, y
                         table.insert(openDropdowns, close)
 
                         -- Refresh highlight states on open
