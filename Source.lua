@@ -919,7 +919,7 @@ function Exodus:Init(config)
                         Parent = Selector,
                         BackgroundTransparency = 1,
                         AnchorPoint = Vector2.new(1, 0.5),
-                        Position = UDim2.new(1, -8, 0.5, 0),
+                        Position = UDim2.new(1, 2, 0.5, 0),
                         Size = UDim2.fromOffset(14, 14),
                         Image = "rbxassetid://131833120209646",
                         ImageColor3 = Theme.SubText,
@@ -1287,7 +1287,7 @@ function Exodus:Init(config)
                         Parent = Row,
                         BackgroundColor3 = Theme.Off,
                         Position = UDim2.new(0, 0, 0, 21),
-                        Size = UDim2.new(1, 0, 0, 5),
+                        Size = UDim2.new(1, 0, 0, 8),
                     })
                     corner(Track, 999)
 
@@ -1303,7 +1303,7 @@ function Exodus:Init(config)
                         BackgroundColor3 = Color3.fromRGB(240, 240, 240),
                         AnchorPoint = Vector2.new(0.5, 0.5),
                         Position = UDim2.new((value - min) / (max - min), 0, 0.5, 0),
-                        Size = UDim2.fromOffset(11, 11),
+                        Size = UDim2.fromOffset(14, 14),
                         ZIndex = 5,
                     })
                     corner(Knob, 999)
