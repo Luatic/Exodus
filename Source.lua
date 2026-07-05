@@ -412,26 +412,7 @@ function Exodus:Init(config)
         ClipsDescendants = true,   -- add this
     })
 
-    local SearchResultsPage = create("ScrollingFrame", {
-        Name = "SearchResultsPage",
-        Parent = PageHolder,
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Size = UDim2.fromScale(1, 1),
-        ScrollBarThickness = 3,
-        ScrollBarImageColor3 = Theme.StrokeDim,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        AutomaticCanvasSize = Enum.AutomaticSize.Y,
-        Visible = false,
-    })
-    local SearchResultsInner = create("Frame", {
-        Parent = SearchResultsPage,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 18, 0, 14),
-        Size = UDim2.new(1, -36, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
-    })
-    vlist(SearchResultsInner, 10)
+    
     
     -- Resize handles (no cursor changes – just drag logic)
     local function makeResizeHandle(parent, anchor, position, size)
@@ -594,41 +575,43 @@ function Exodus:Init(config)
 
     local function applySearch(query)
         query = query:lower()
-        
+    
+        -- First, hide all normal tab pages if searching
         if query ~= "" then
-            -- Hide normal view canvases completely
             for _, tabData in pairs(Window._tabs) do
                 if tabData.page then tabData.page.Visible = false end
             end
-            SearchResultsPage.Visible = true
-            
-            -- Sort & shift layout items cleanly across all pages to the top left view
-            for _, entry in ipairs(Window._searchIndex) do
-                local visible = entry.text:lower():find(query, 1, true) ~= nil
-                if visible then
-                    entry.frame.Parent = SearchResultsInner
-                    entry.frame.Visible = true
-                else
-                    entry.frame.Visible = false
-                end
-            end
         else
-            -- Restore active page context
-            SearchResultsPage.Visible = false
+            -- Show the active tab page
             if Window._activeTab then
                 Window._activeTab.Visible = true
             end
-            
-            -- Push all components cleanly back to their designated panels
-            for _, entry in ipairs(Window._searchIndex) do
-                entry.frame.Parent = entry.originalParent
-                entry.frame.Visible = true
-            end
-            
-            -- Keep section layout panels default visible
+            -- Make all sections visible again
             for _, tabData in pairs(Window._tabs) do
                 for _, sec in ipairs(tabData.sections) do
                     sec.frame.Visible = true
+                end
+            end
+        end
+    
+        -- Loop over all searchable entries and toggle visibility
+        for _, entry in ipairs(Window._searchIndex) do
+            local visible = query == "" or entry.text:lower():find(query, 1, true) ~= nil
+            entry.frame.Visible = visible
+        end
+    
+        -- Hide sections that have no visible children (only when searching)
+        if query ~= "" then
+            for _, tabData in pairs(Window._tabs) do
+                for _, sec in ipairs(tabData.sections) do
+                    local hasVisible = false
+                    for _, entry in ipairs(sec.entries) do
+                        if entry.frame.Visible then
+                            hasVisible = true
+                            break
+                        end
+                    end
+                    sec.frame.Visible = hasVisible
                 end
             end
         end
@@ -936,7 +919,7 @@ function Exodus:Init(config)
                 local SectionAPI = {}
 
                 local function registerSearch(frame, text)
-                    table.insert(Window._searchIndex, { frame = frame, text = text, originalParent = frame.Parent })
+                    table.insert(Window._searchIndex, { frame = frame, text = text })
                     table.insert(sectionData.entries, { frame = frame, text = text })
                 end
 
@@ -990,6 +973,15 @@ function Exodus:Init(config)
                     vlist(ListFrame, 2)
                     pad(ListFrame, 4, 4, 4, 4)
 
+                    local DropdownBlockerInside = create("TextButton", {
+                        Parent = ListFrame,
+                        BackgroundTransparency = 1,
+                        Size = UDim2.fromScale(1, 1),
+                        Text = "",
+                        AutoButtonColor = false,
+                        ZIndex = 0,
+                    })
+                    
                     local open = false
                     local optionButtons = {}
                     local selected = {}
@@ -1596,6 +1588,15 @@ function Exodus:Init(config)
                     stroke(Popup, Theme.StrokeDim, 1)
                     pad(Popup, 14, 14, 14, 14)
                     vlist(Popup, 10)
+
+                    local ClickBlocker = create("TextButton", {
+                        Parent = Popup,
+                        BackgroundTransparency = 1,
+                        Size = UDim2.fromScale(1, 1),
+                        Text = "",
+                        AutoButtonColor = false,
+                        ZIndex = 0, -- behind everything else
+                    })
                 
                     local hue, sat, val = 0, 0, 1
                     do
