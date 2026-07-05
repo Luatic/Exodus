@@ -412,26 +412,7 @@ function Exodus:Init(config)
         ClipsDescendants = true,   -- add this
     })
 
-    local SearchResultsPage = create("ScrollingFrame", {
-        Name = "SearchResultsPage",
-        Parent = PageHolder,
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Size = UDim2.fromScale(1, 1),
-        ScrollBarThickness = 3,
-        ScrollBarImageColor3 = Theme.StrokeDim,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        AutomaticCanvasSize = Enum.AutomaticSize.Y,
-        Visible = false,
-    })
-    local SearchResultsInner = create("Frame", {
-        Parent = SearchResultsPage,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 18, 0, 14),
-        Size = UDim2.new(1, -36, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
-    })
-    vlist(SearchResultsInner, 10)
+    
     
     -- Resize handles (no cursor changes – just drag logic)
     local function makeResizeHandle(parent, anchor, position, size)
@@ -594,115 +575,36 @@ function Exodus:Init(config)
 
     local function applySearch(query)
         query = query:lower()
-        
-        if query ~= "" then
-            -- Hide all tab pages
-            for _, tabData in ipairs(Window._tabs) do
-                if tabData.page then tabData.page.Visible = false end
+        local activePage = Window._activeTab   -- the currently visible tab's ScrollingFrame
+    
+        -- 1. Toggle visibility of each individual frame
+        for _, entry in ipairs(Window._searchIndex) do
+            local visible = true
+            if query ~= "" then
+                -- Only consider entries that belong to the active tab AND match the query
+                if entry.tabPage == activePage then
+                    visible = entry.text:lower():find(query, 1, true) ~= nil
+                else
+                    visible = false   -- hide entries from other tabs
+                end
+            else
+                -- When search is cleared, show only entries from the active tab
+                visible = (entry.tabPage == activePage)
             end
-            SearchResultsPage.Visible = true
-            
-            -- Clear previous results
-            for _, child in ipairs(SearchResultsInner:GetChildren()) do
-                child:Destroy()
-            end
-            
-            -- Group matching entries by sectionFrame
-            local groups = {}
-            for _, entry in ipairs(Window._searchIndex) do
-                local visible = entry.text:lower():find(query, 1, true) ~= nil
-                if visible then
-                    local key = entry.sectionFrame
-                    if not groups[key] then
-                        groups[key] = { entries = {}, sectionName = entry.sectionName, sectionIcon = entry.sectionIcon }
+            entry.frame.Visible = visible
+        end
+    
+        -- 2. Hide sections that have no visible entries (to keep layout clean)
+        for _, tabData in ipairs(Window._tabs) do
+            for _, sec in ipairs(tabData.sections) do
+                local anyVisible = false
+                for _, entry in ipairs(sec.entries) do
+                    if entry.frame.Visible then
+                        anyVisible = true
+                        break
                     end
-                    table.insert(groups[key].entries, entry)
                 end
-            end
-            
-            -- Build grouped layout
-            for sectionFrame, group in pairs(groups) do
-                -- Create a new SectionFrame (full width, inside SearchResultsInner)
-                local newSection = create("Frame", {
-                    Parent = SearchResultsInner,
-                    BackgroundColor3 = Theme.Panel,
-                    BorderSizePixel = 0,
-                    Size = UDim2.new(1, 0, 0, 0),
-                    AutomaticSize = Enum.AutomaticSize.Y,
-                })
-                corner(newSection, 10)
-                stroke(newSection, Theme.StrokeDim, 1, 0.2)
-                pad(newSection, 14, 14, 12, 14)
-                vlist(newSection, 12)
-                
-                -- Title row
-                local TitleRow = create("Frame", {
-                    Parent = newSection,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 16),
-                    LayoutOrder = 1,
-                })
-                create("ImageLabel", {
-                    Parent = TitleRow,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.fromOffset(14, 14),
-                    Image = group.sectionIcon or ASSETS.SectionIcon,
-                    ImageColor3 = Theme.SubText,
-                })
-                create("TextLabel", {
-                    Parent = TitleRow,
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 20, 0, 0),
-                    Size = UDim2.new(1, -20, 1, 0),
-                    Font = Enum.Font.GothamBold,
-                    Text = group.sectionName,
-                    TextColor3 = Theme.Text,
-                    TextSize = 13,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                })
-                create("Frame", {
-                    Parent = newSection,
-                    BackgroundColor3 = Theme.StrokeDim,
-                    BackgroundTransparency = 0.5,
-                    BorderSizePixel = 0,
-                    Size = UDim2.new(1, 0, 0, 1),
-                    LayoutOrder = 2,
-                })
-                
-                -- RowHolder for this section's entries
-                local newRowHolder = create("Frame", {
-                    Parent = newSection,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 0),
-                    AutomaticSize = Enum.AutomaticSize.Y,
-                    LayoutOrder = 3,
-                })
-                vlist(newRowHolder, 10)
-                
-                -- Reparent each matching entry into this RowHolder
-                for _, entry in ipairs(group.entries) do
-                    entry.frame.Parent = newRowHolder
-                    entry.frame.Visible = true
-                end
-            end
-        else
-            -- Restore normal view
-            SearchResultsPage.Visible = false
-            if Window._activeTab then
-                Window._activeTab.Visible = true
-            end
-            
-            -- Return all frames to their original parents
-            for _, entry in ipairs(Window._searchIndex) do
-                entry.frame.Parent = entry.originalParent
-                entry.frame.Visible = true
-            end
-            
-            -- Ensure all sections are visible
-            for _, tabData in ipairs(Window._tabs) do
-                for _, sec in ipairs(tabData.sections) do
-                    sec.frame.Visible = true
-                end
+                sec.frame.Visible = anyVisible
             end
         end
     end
@@ -1013,9 +915,7 @@ function Exodus:Init(config)
                         frame = frame, 
                         text = text, 
                         originalParent = frame.Parent,
-                        sectionFrame = SectionFrame,    -- the actual SectionFrame
-                        sectionName = sectionName,
-                        sectionIcon = sectionIcon
+                        tabPage = Page   -- ← add this line
                     })
                     table.insert(sectionData.entries, { frame = frame, text = text })
                 end
