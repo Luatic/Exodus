@@ -162,7 +162,6 @@ local function toHex(c)
     return string.format("%02X%02X%02X", c.R * 255, c.G * 255, c.B * 255)
 end
 
--- Helper to choose contrasting text color
 local function getContrastColor(bg)
     local lum = 0.299 * bg.R + 0.587 * bg.G + 0.114 * bg.B
     return lum > 0.5 and Color3.fromRGB(0,0,0) or Color3.fromRGB(255,255,255)
@@ -234,7 +233,7 @@ function Exodus:Init(config)
         Size = UDim2.new(0, 1, 1, 0),
     })
 
-    -- FIX: Sidebar header alignment – vertically centered text & avatar
+    -- Sidebar header (vertically centered)
     local SidebarHeader = create("Frame", {
         Parent = Sidebar,
         BackgroundTransparency = 1,
@@ -346,7 +345,6 @@ function Exodus:Init(config)
         Size = UDim2.new(1, -sidebarWidth, 1, 0),
     })
 
-    -- FIX: ContentHeader – adjust title/subtitle positions
     local ContentHeader = create("Frame", {
         Parent = ContentHolder,
         BackgroundTransparency = 1,
@@ -395,6 +393,34 @@ function Exodus:Init(config)
         Size = UDim2.new(1, 0, 1, -51),
     })
 
+    -- Resize handles: bottom, right, and corner
+    local function makeResizeHandle(parent, anchor, position, size, cursor)
+        local handle = create("Frame", {
+            Parent = parent,
+            BackgroundTransparency = 1,
+            AnchorPoint = anchor,
+            Position = position,
+            Size = size,
+            ZIndex = 20,
+        })
+        if cursor then
+            handle.MouseEnter:Connect(function()
+                UIS.MouseIconEnabled = true
+                UIS.MouseBehavior = cursor
+            end)
+            handle.MouseLeave:Connect(function()
+                UIS.MouseIconEnabled = false
+                UIS.MouseBehavior = Enum.MouseBehavior.Default
+            end)
+        end
+        return handle
+    end
+
+    -- Bottom edge handle (resize vertically)
+    local bottomHandle = makeResizeHandle(Main, Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, 0), UDim2.new(1, -20, 0, 6), Enum.MouseBehavior.ResizeTopBottom)
+    -- Right edge handle (resize horizontally)
+    local rightHandle = makeResizeHandle(Main, Vector2.new(1, 0.5), UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 6, 1, -20), Enum.MouseBehavior.ResizeLeftRight)
+    -- Corner grip (already exists, but we'll keep it)
     local ResizeGrip = create("Frame", {
         Parent = Main,
         BackgroundTransparency = 1,
@@ -410,12 +436,20 @@ function Exodus:Init(config)
         Font = Enum.Font.GothamBold,
         Text = "⌟",
         TextColor3 = Theme.SubText,
-        TextTransparency = 1,
+        TextTransparency = 0.5,
         TextSize = 16,
     })
+    ResizeGrip.MouseEnter:Connect(function()
+        UIS.MouseIconEnabled = true
+        UIS.MouseBehavior = Enum.MouseBehavior.ResizeBottomRight
+    end)
+    ResizeGrip.MouseLeave:Connect(function()
+        UIS.MouseIconEnabled = false
+        UIS.MouseBehavior = Enum.MouseBehavior.Default
+    end)
 
     local dragging, dragStart, startPos = false, nil, nil
-    local resizing, resizeStart, startSize = false, nil, nil
+    local resizing, resizeStart, startSize, resizeType = false, nil, nil, nil
 
     SidebarHeader.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -430,18 +464,35 @@ function Exodus:Init(config)
         end
     end)
 
-    ResizeGrip.InputBegan:Connect(function(input)
+    local function startResize(input, type)
+        resizing = true
+        resizeStart = input.Position
+        startSize = Main.Size
+        resizeType = type
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                resizing = false
+                resizeType = nil
+            end
+        end)
+    end
+
+    bottomHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            resizing = true
-            resizeStart = input.Position
-            startSize = Main.Size
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    resizing = false
-                end
-            end)
+            startResize(input, "bottom")
         end
     end)
+    rightHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            startResize(input, "right")
+        end
+    end)
+    ResizeGrip.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            startResize(input, "corner")
+        end
+    end)
+
     ContentHeader.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
@@ -454,6 +505,7 @@ function Exodus:Init(config)
             end)
         end
     end)
+
     UIS.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             if dragging then
@@ -461,8 +513,13 @@ function Exodus:Init(config)
                 Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
             elseif resizing then
                 local delta = input.Position - resizeStart
-                local newW = math.max(minWidth, startSize.X.Offset + delta.X)
-                local newH = math.max(minHeight, startSize.Y.Offset + delta.Y)
+                local newW, newH = startSize.X.Offset, startSize.Y.Offset
+                if resizeType == "bottom" or resizeType == "corner" then
+                    newH = math.max(minHeight, startSize.Y.Offset + delta.Y)
+                end
+                if resizeType == "right" or resizeType == "corner" then
+                    newW = math.max(minWidth, startSize.X.Offset + delta.X)
+                end
                 Main.Size = UDim2.fromOffset(newW, newH)
             end
         end
@@ -702,11 +759,11 @@ function Exodus:Init(config)
             local tabData = { sections = {} }
             Window._tabs[tabName] = tabData
 
-            -- FIX: prevent double selection
             local function selectTab()
                 if Page.Visible then return end
                 closeAllDropdowns()
                 DropdownBlocker.Visible = false
+                -- Clear all tabs
                 for name, t in pairs(Window._tabs) do
                     if t.page then t.page.Visible = false end
                     if t.button then
@@ -718,8 +775,8 @@ function Exodus:Init(config)
                 end
                 Page.Visible = true
                 Window._activeTab = Page
+                -- Highlight this tab
                 tween(TabButton, { BackgroundColor3 = Highlight, BackgroundTransparency = 0 }, 0.2)
-                -- FIX: set text color to contrast with highlight
                 local contrast = getContrastColor(Highlight)
                 tween(TabLabel, { TextColor3 = contrast }, 0.2)
                 tween(TabIconImage, { ImageColor3 = contrast }, 0.2)
@@ -836,7 +893,7 @@ function Exodus:Init(config)
                     })
                 end
 
-                -- FIX: dropdown list alignment – match button width
+                -- Dropdown with persistent highlighting
                 local function styledDropdownList(Row, options, isMulti, callback)
                     local Selector = create("TextButton", {
                         Parent = Row,
@@ -874,6 +931,7 @@ function Exodus:Init(config)
                     local open = false
                     local optionButtons = {}
                     local selected = {}
+                    local selectedSingle = nil
 
                     local function close()
                         open = false
@@ -897,12 +955,24 @@ function Exodus:Init(config)
                         local selPos = Selector.AbsolutePosition
                         local selSize = Selector.AbsoluteSize
                         local screenSize = ScreenGui.AbsoluteSize
-                        -- FIX: align right edge with button
                         local listWidth = 140
                         local x = math.clamp(selPos.X + selSize.X - listWidth, 4, screenSize.X - listWidth - 4)
                         local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - h - 4)
                         ListFrame.Position = UDim2.fromOffset(x, y)
                         table.insert(openDropdowns, close)
+
+                        -- Refresh highlight states on open
+                        for i, optName in ipairs(options) do
+                            local btn = optionButtons[optName]
+                            local isSelected = isMulti and selected[optName] or (optName == selectedSingle)
+                            if isSelected then
+                                btn.BackgroundTransparency = 0
+                                btn.TextColor3 = Theme.Text
+                            else
+                                btn.BackgroundTransparency = 1
+                                btn.TextColor3 = Theme.SubText
+                            end
+                        end
                     end
 
                     local function refreshLabel()
@@ -933,12 +1003,12 @@ function Exodus:Init(config)
                         optionButtons[optName] = OptBtn
 
                         OptBtn.MouseEnter:Connect(function()
-                            if not selected[optName] then
+                            if not (isMulti and selected[optName]) and optName ~= selectedSingle then
                                 tween(OptBtn, { BackgroundTransparency = 0.85 }, 0.15)
                             end
                         end)
                         OptBtn.MouseLeave:Connect(function()
-                            if not selected[optName] then
+                            if not (isMulti and selected[optName]) and optName ~= selectedSingle then
                                 tween(OptBtn, { BackgroundTransparency = 1 }, 0.15)
                             end
                         end)
@@ -963,10 +1033,15 @@ function Exodus:Init(config)
                                 end
                                 task.spawn(callback, list)
                             else
-                                for _, btn in pairs(optionButtons) do
-                                    tween(btn, { BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
+                                -- Single select
+                                if selectedSingle then
+                                    local old = optionButtons[selectedSingle]
+                                    if old then
+                                        tween(old, { BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
+                                    end
                                 end
-                                tween(OptBtn, {  BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
+                                selectedSingle = optName
+                                tween(OptBtn, { BackgroundTransparency = 0, TextColor3 = Theme.Text }, 0.15)
                                 Selector.Text = optName
                                 close()
                                 task.spawn(callback, optName)
@@ -1137,7 +1212,7 @@ function Exodus:Init(config)
                         Text = "",
                         TextColor3 = Theme.Text,
                         TextSize = 12,
-                        TextXAlignment = Enum.TextXAlignment.Center,  -- FIX: center text
+                        TextXAlignment = Enum.TextXAlignment.Center,
                         TextYAlignment = Enum.TextYAlignment.Center,
                         ClearTextOnFocus = false,
                         ClipsDescendants = true,
@@ -1268,11 +1343,12 @@ function Exodus:Init(config)
                     pad(Row, 8, 0, 0, 0)
                     vlist(Row, 4)
 
+                    -- Accent bar aligned with heading
                     create("Frame", {
                         Parent = Row,
                         BackgroundColor3 = Highlight,
-                        Position = UDim2.new(0, -8, 0, 1),
-                        Size = UDim2.fromOffset(2, 14),
+                        Position = UDim2.new(0, -8, 0, 0), -- Y=0 aligns with top
+                        Size = UDim2.fromOffset(2, 14),   -- same height as heading
                     })
 
                     create("TextLabel", {
@@ -1305,7 +1381,6 @@ function Exodus:Init(config)
                     return { Row = Row }
                 end
 
-                -- FIX: Keybind – support mouse buttons
                 function SectionAPI:Keybind(o)
                     o = o or {}
                     local label = o.Name or "Keybind"
