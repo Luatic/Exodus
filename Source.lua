@@ -240,23 +240,20 @@ function Exodus:Init(config)
         Size = UDim2.new(1, 0, 0, 56),
     })
 
-    -- Text group (window name + handle) – anchored to vertical center
-    -- Text group (window name + handle) – vertically centered using manual padding
+    -- Text group (window name + handle) – vertically centered using UIListLayout
     local TextGroup = create("Frame", {
         Parent = SidebarHeader,
         BackgroundTransparency = 1,
         Size = UDim2.new(1, -(IconSize + 24), 1, 0),
         Position = UDim2.new(0, 12, 0, 0),
     })
-    -- Use a UIListLayout to center the text vertically within the TextGroup
     local textLayout = create("UIListLayout", {
         Parent = TextGroup,
         FillDirection = Enum.FillDirection.Vertical,
         Padding = UDim.new(0, 2),
         SortOrder = Enum.SortOrder.LayoutOrder,
-        VerticalAlignment = Enum.VerticalAlignment.Center, -- This centers the text vertically
+        VerticalAlignment = Enum.VerticalAlignment.Center,
     })
-    vlist(TextGroup, 2)
     create("TextLabel", {
         Parent = TextGroup,
         BackgroundTransparency = 1,
@@ -357,17 +354,16 @@ function Exodus:Init(config)
     local ContentHeader = create("Frame", {
         Parent = ContentHolder,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 56),
+        Size = UDim2.new(1, 0, 0, 50),
     })
     pad(ContentHeader, 18, 18, 0, 0)
     
-    -- Create a container to vertically center the text
+    -- Container to vertically center the header title and description
     local HeaderTextContainer = create("Frame", {
         Parent = ContentHeader,
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 1, 0),
     })
-    
     local headerLayout = create("UIListLayout", {
         Parent = HeaderTextContainer,
         FillDirection = Enum.FillDirection.Vertical,
@@ -375,7 +371,6 @@ function Exodus:Init(config)
         SortOrder = Enum.SortOrder.LayoutOrder,
         VerticalAlignment = Enum.VerticalAlignment.Center,
     })
-    
     local HeaderTitle = create("TextLabel", {
         Parent = HeaderTextContainer,
         BackgroundTransparency = 1,
@@ -387,7 +382,6 @@ function Exodus:Init(config)
         TextXAlignment = Enum.TextXAlignment.Left,
         LayoutOrder = 1,
     })
-    
     local HeaderDesc = create("TextLabel", {
         Parent = HeaderTextContainer,
         BackgroundTransparency = 1,
@@ -406,15 +400,15 @@ function Exodus:Init(config)
         BackgroundColor3 = Theme.StrokeDim,
         BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 56),
+        Position = UDim2.new(0, 0, 0, 55),
         Size = UDim2.new(1, 0, 0, 1),
     })
 
     local PageHolder = create("Frame", {
         Parent = ContentHolder,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 56),
-        Size = UDim2.new(1, 0, 1, -56),
+        Position = UDim2.new(0, 0, 0, 51),
+        Size = UDim2.new(1, 0, 1, -51),
     })
 
     -- Resize handles (no cursor changes – just drag logic)
@@ -762,12 +756,15 @@ function Exodus:Init(config)
             Window._tabs[tabName] = tabData
 
             local function selectTab()
-                if Page.Visible then return end
+                -- Close any open dropdowns
                 closeAllDropdowns()
                 DropdownBlocker.Visible = false
-                -- Clear all tabs
+
+                -- Hide all pages and reset all tabs
                 for name, t in pairs(Window._tabs) do
-                    if t.page then t.page.Visible = false end
+                    if t.page then
+                        t.page.Visible = false
+                    end
                     if t.button then
                         t.button.BackgroundColor3 = Theme.Off
                         t.button.BackgroundTransparency = 1
@@ -775,9 +772,10 @@ function Exodus:Init(config)
                         t.tabIcon.ImageColor3 = Theme.SubText
                     end
                 end
+
+                -- Show this page and highlight this tab
                 Page.Visible = true
                 Window._activeTab = Page
-                -- Highlight this tab
                 tween(TabButton, { BackgroundColor3 = Highlight, BackgroundTransparency = 0 }, 0.2)
                 local contrast = getContrastColor(Highlight)
                 tween(TabLabel, { TextColor3 = contrast }, 0.2)
@@ -895,7 +893,7 @@ function Exodus:Init(config)
                     })
                 end
 
-                -- Dropdown with persistent highlighting
+                -- Dropdown with persistent highlighting and better visibility
                 local function styledDropdownList(Row, options, isMulti, callback)
                     local Selector = create("TextButton", {
                         Parent = Row,
@@ -968,10 +966,12 @@ function Exodus:Init(config)
                             local btn = optionButtons[optName]
                             local isSelected = isMulti and selected[optName] or (optName == selectedSingle)
                             if isSelected then
-                                btn.BackgroundTransparency = 0
-                                btn.TextColor3 = Theme.Text
+                                btn.BackgroundTransparency = 0.5              -- semi-transparent
+                                btn.BackgroundColor3 = Color3.fromRGB(60,60,60) -- dark grey background
+                                btn.TextColor3 = Theme.Text                   -- white text on dark grey
                             else
                                 btn.BackgroundTransparency = 1
+                                btn.BackgroundColor3 = Highlight
                                 btn.TextColor3 = Theme.SubText
                             end
                         end
@@ -1019,12 +1019,10 @@ function Exodus:Init(config)
                             if isMulti then
                                 if selected[optName] then
                                     selected[optName] = nil
-                                    tween(OptBtn, { BackgroundTransparency = 1 }, 0.15)
-                                    tween(OptBtn, { TextColor3 = Theme.SubText }, 0.15)
+                                    tween(OptBtn, { BackgroundTransparency = 1, BackgroundColor3 = Highlight, TextColor3 = Theme.SubText }, 0.15)
                                 else
                                     selected[optName] = true
-                                    tween(OptBtn, { BackgroundTransparency = 0 }, 0.15)
-                                    tween(OptBtn, { TextColor3 = Theme.Text }, 0.15)
+                                    tween(OptBtn, { BackgroundTransparency = 0.5, BackgroundColor3 = Color3.fromRGB(60,60,60), TextColor3 = Theme.Text }, 0.15)
                                 end
                                 refreshLabel()
                                 local list = {}
@@ -1039,11 +1037,11 @@ function Exodus:Init(config)
                                 if selectedSingle then
                                     local old = optionButtons[selectedSingle]
                                     if old then
-                                        tween(old, { BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
+                                        tween(old, { BackgroundTransparency = 1, BackgroundColor3 = Highlight, TextColor3 = Theme.SubText }, 0.15)
                                     end
                                 end
                                 selectedSingle = optName
-                                tween(OptBtn, { BackgroundTransparency = 0, TextColor3 = Theme.Text }, 0.15)
+                                tween(OptBtn, { BackgroundTransparency = 0.5, BackgroundColor3 = Color3.fromRGB(60,60,60), TextColor3 = Theme.Text }, 0.15)
                                 Selector.Text = optName
                                 close()
                                 task.spawn(callback, optName)
