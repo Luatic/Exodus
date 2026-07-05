@@ -409,6 +409,7 @@ function Exodus:Init(config)
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 0, 56),
         Size = UDim2.new(1, 0, 1, -56),
+        ClipsDescendants = true,   -- add this
     })
 
     -- Resize handles (no cursor changes – just drag logic)
@@ -760,6 +761,13 @@ function Exodus:Init(config)
                 closeAllDropdowns()
                 DropdownBlocker.Visible = false
 
+                -- Hide all pages (direct children of PageHolder)
+                for _, child in ipairs(PageHolder:GetChildren()) do
+                    if child:IsA("ScrollingFrame") then
+                        child.Visible = false
+                    end
+                end
+               
                 -- Hide all pages and reset all tabs
                 for name, t in pairs(Window._tabs) do
                     if t.page then
@@ -900,14 +908,21 @@ function Exodus:Init(config)
                         BackgroundColor3 = Theme.Off,
                         BackgroundTransparency = 0.15,
                         AutoButtonColor = false,
-                        AnchorPoint = Vector2.new(1, 0.5),
-                        Position = UDim2.new(1, 0, 0.5, 0),
-                        Size = UDim2.fromOffset(140, 22),
+                        Size = UDim2.new(1, 0, 0, 22),   -- full width, height 22
                         Font = Enum.Font.Gotham,
                         Text = isMulti and "None" or "Select",
                         TextColor3 = Theme.Text,
                         TextSize = 11,
                         ClipsDescendants = true,
+                    })
+                    local DropdownIcon = create("ImageLabel", {
+                        Parent = Selector,
+                        BackgroundTransparency = 1,
+                        AnchorPoint = Vector2.new(1, 0.5),
+                        Position = UDim2.new(1, -6, 0.5, 0),
+                        Size = UDim2.fromOffset(14, 14),
+                        Image = "rbxassetid://131833120209646",
+                        ImageColor3 = Theme.SubText,
                     })
                     corner(Selector, 6)
                     stroke(Selector, Theme.StrokeDim, 1, 0.4)
@@ -1178,33 +1193,38 @@ function Exodus:Init(config)
                     local label = o.Name or "Input"
                     local placeholder = o.Placeholder or "..."
                     local callback = o.Callback or function() end
-
-                    local Row = newRow(42)
+                
+                    local Row = create("Frame", {
+                        Parent = RowHolder,
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(1, 0, 0, 0),
+                        AutomaticSize = Enum.AutomaticSize.Y,
+                    })
+                    vlist(Row, 4)  -- vertical layout with 4px gap
+                
                     create("TextLabel", {
                         Parent = Row,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(1, 0, 0, 13),
+                        Size = UDim2.new(1, 0, 0, 14),
                         Font = Enum.Font.GothamMedium,
                         Text = label,
                         TextColor3 = Theme.SubText,
                         TextSize = 11,
                         TextXAlignment = Enum.TextXAlignment.Left,
                     })
-
+                
                     local InputBG = create("Frame", {
                         Parent = Row,
                         BackgroundColor3 = Theme.Off,
                         BackgroundTransparency = 0.2,
-                        Position = UDim2.new(0, 0, 0, 19),
                         Size = UDim2.new(1, 0, 0, 22),
                     })
                     corner(InputBG, 6)
                     local inputStroke = stroke(InputBG, Theme.StrokeDim, 1, 0.4)
-
+                
                     local Box = create("TextBox", {
                         Parent = InputBG,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 0, 0, 0),
                         Size = UDim2.new(1, 0, 1, 0),
                         Font = Enum.Font.Gotham,
                         PlaceholderText = placeholder,
@@ -1333,35 +1353,49 @@ function Exodus:Init(config)
                     o = o or {}
                     local title = o.Name or "Paragraph"
                     local text = o.Text or ""
-
+                
                     local Row = create("Frame", {
                         Parent = RowHolder,
                         BackgroundTransparency = 1,
                         Size = UDim2.new(1, 0, 0, 0),
                         AutomaticSize = Enum.AutomaticSize.Y,
                     })
-                    pad(Row, 8, 0, 0, 0)
+                    -- Use a vertical layout for the whole row: header row + text
                     vlist(Row, 4)
-
-                    -- Accent bar aligned with heading
-                    create("Frame", {
-                        Parent = Row,
-                        BackgroundColor3 = Highlight,
-                        Position = UDim2.new(0, -8, 0, 0),
-                        Size = UDim2.fromOffset(2, 14),
-                    })
-
-                    create("TextLabel", {
+                
+                    -- Header row: accent bar + title side by side
+                    local HeaderRow = create("Frame", {
                         Parent = Row,
                         BackgroundTransparency = 1,
                         Size = UDim2.new(1, 0, 0, 14),
+                    })
+                    create("UIListLayout", {
+                        Parent = HeaderRow,
+                        FillDirection = Enum.FillDirection.Horizontal,
+                        Padding = UDim.new(0, 6),
+                        VerticalAlignment = Enum.VerticalAlignment.Center,
+                    })
+                
+                    -- Accent bar (left)
+                    create("Frame", {
+                        Parent = HeaderRow,
+                        BackgroundColor3 = Highlight,
+                        Size = UDim2.fromOffset(2, 14),
+                    })
+                
+                    -- Title (right of bar)
+                    create("TextLabel", {
+                        Parent = HeaderRow,
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(1, -8, 0, 14),  -- take remaining width
                         Font = Enum.Font.GothamBold,
                         Text = title,
                         TextColor3 = Theme.Text,
                         TextSize = 12,
                         TextXAlignment = Enum.TextXAlignment.Left,
-                        LayoutOrder = 1,
                     })
+                
+                    -- Description text below
                     create("TextLabel", {
                         Parent = Row,
                         BackgroundTransparency = 1,
@@ -1376,7 +1410,7 @@ function Exodus:Init(config)
                         TextYAlignment = Enum.TextYAlignment.Top,
                         LayoutOrder = 2,
                     })
-
+                
                     registerSearch(Row, title)
                     return { Row = Row }
                 end
@@ -1805,16 +1839,23 @@ function Exodus:Init(config)
                     local label = o.Name or "Dropdown"
                     local options = o.Options or {}
                     local callback = o.Callback or function() end
-
-                    local Row = newRow(24)
+                
+                    local Row = create("Frame", {
+                        Parent = RowHolder,
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(1, 0, 0, 0),
+                        AutomaticSize = Enum.AutomaticSize.Y,
+                    })
+                    vlist(Row, 4)
+                
                     create("TextLabel", {
                         Parent = Row,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(1, -120, 1, 0),
+                        Size = UDim2.new(1, 0, 0, 14),
                         Font = Enum.Font.GothamMedium,
                         Text = label,
-                        TextColor3 = Theme.Text,
-                        TextSize = 13,
+                        TextColor3 = Theme.SubText,
+                        TextSize = 11,
                         TextXAlignment = Enum.TextXAlignment.Left,
                     })
 
@@ -1829,16 +1870,23 @@ function Exodus:Init(config)
                     local label = o.Name or "MultiDropdown"
                     local options = o.Options or {}
                     local callback = o.Callback or function() end
-
-                    local Row = newRow(24)
+                
+                    local Row = create("Frame", {
+                        Parent = RowHolder,
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(1, 0, 0, 0),
+                        AutomaticSize = Enum.AutomaticSize.Y,
+                    })
+                    vlist(Row, 4)
+                
                     create("TextLabel", {
                         Parent = Row,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(1, -120, 1, 0),
+                        Size = UDim2.new(1, 0, 0, 14),
                         Font = Enum.Font.GothamMedium,
                         Text = label,
-                        TextColor3 = Theme.Text,
-                        TextSize = 13,
+                        TextColor3 = Theme.SubText,
+                        TextSize = 11,
                         TextXAlignment = Enum.TextXAlignment.Left,
                     })
 
