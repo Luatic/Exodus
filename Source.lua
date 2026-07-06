@@ -202,23 +202,6 @@ function Exodus:Init(config)
     corner(Main, 12)
     stroke(Main, Theme.StrokeDim, 1)
 
-    -- Game ID label – top‑right corner with padding
-    local GameIDLabel = create("TextLabel", {
-        Parent = Main,
-        BackgroundColor3 = Theme.Background, -- or a darker shade
-        BackgroundTransparency = 0.5,
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, -12, 0, 12),
-        Size = UDim2.new(0, 250, 0, 20),
-        AutomaticSize = Enum.AutomaticSize.X,
-        Font = Enum.Font.Gotham,
-        Text = "Game ID: " .. tostring(game.GameId),
-        TextColor3 = Theme.SubText,
-        TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        TextYAlignment = Enum.TextYAlignment.Top,
-        ZIndex = 30,
-    })
 
     local MainScale = create("UIScale", { Parent = Main, Scale = 1 })
  
@@ -423,6 +406,27 @@ function Exodus:Init(config)
         LayoutOrder = 2,
     })
 
+    -- Game ID tag label – top-right, vertically centered, rounded, white background
+    local GameIDTag = create("TextLabel", {
+        Parent = ContentHeader,
+        BackgroundColor3 = Highlight,
+        BackgroundTransparency = 0.15,
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -12, 0.5, 0),
+        Size = UDim2.new(0, 0, 0, 24),
+        AutomaticSize = Enum.AutomaticSize.X,
+        Font = Enum.Font.GothamBold,
+        Text = "Game ID: " .. tostring(game.GameId),
+        TextColor3 = getContrastColor(Highlight), -- black or white for readability
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        ClipsDescendants = true,
+        ZIndex = 10,
+    })
+    corner(GameIDTag, 6)
+    pad(GameIDTag, 10, 10, 4, 4)  -- left/right 10, top/bottom 4
+        
     create("Frame", {
         Parent = ContentHolder,
         BackgroundColor3 = Theme.StrokeDim,
