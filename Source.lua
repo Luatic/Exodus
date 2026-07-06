@@ -444,7 +444,7 @@ function Exodus:Init(config)
         ClipsDescendants = true,   -- add this
     })
 
-    
+    pad(PageHolder, 0, 0, 0, 14) -- bottom padding 18px, match top 18 from PageInner
     
     -- Resize handles (no cursor changes – just drag logic)
     local function makeResizeHandle(parent, anchor, position, size)
@@ -990,7 +990,7 @@ function Exodus:Init(config)
                     Selector.TextXAlignment = Enum.TextXAlignment.Left
                     pad(Selector, 8, 8, 0, 0)
 
-                    local ListFrame = create("Frame", {
+                    local ListFrame = create("ScrollingFrame", {
                         Parent = ScreenGui,
                         BackgroundColor3 = Theme.Elevated,
                         BorderSizePixel = 0,
@@ -998,6 +998,10 @@ function Exodus:Init(config)
                         ClipsDescendants = true,
                         ZIndex = 100,
                         Visible = false,
+                        ScrollBarThickness = 3,
+                        ScrollBarImageColor3 = Theme.StrokeDim,
+                        CanvasSize = UDim2.new(0, 0, 0, 0),
+                        AutomaticCanvasSize = Enum.AutomaticSize.Y,
                     })
                     corner(ListFrame, 6)
                     stroke(ListFrame, Theme.StrokeDim, 1)
@@ -1031,10 +1035,10 @@ function Exodus:Init(config)
                         local selSize = Selector.AbsoluteSize
                         local screenSize = ScreenGui.AbsoluteSize
                         
-                        local h = math.min(#options * 24 + 8, 160)
+                        local maxHeight = 200
                         local listWidth = selSize.X -- Matches the list width to the button width
                         
-                        ListFrame.Size = UDim2.new(0, listWidth, 0, h)
+                        ListFrame.Size = UDim2.new(0, listWidth, 0, maxHeight)
                         
                         -- Aligns the list directly under the left edge of the button
                         local x = math.clamp(selPos.X, 4, screenSize.X - listWidth - 4)
