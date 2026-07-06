@@ -1036,24 +1036,24 @@ function Exodus:Init(config)
                         local screenSize = ScreenGui.AbsoluteSize
                         
                         local maxHeight = 200
-                        local listWidth = selSize.X -- Matches the list width to the button width
+                        local listWidth = selSize.X
                         
                         ListFrame.Size = UDim2.new(0, listWidth, 0, maxHeight)
                         
-                        -- Aligns the list directly under the left edge of the button
                         local x = math.clamp(selPos.X, 4, screenSize.X - listWidth - 4)
-                        local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - h - 4)
+                        local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - maxHeight - 4)  -- fixed
+                        
                         ListFrame.Position = UDim2.fromOffset(x, y)
                         table.insert(openDropdowns, close)
-
+                    
                         -- Refresh highlight states on open
                         for i, optName in ipairs(options) do
                             local btn = optionButtons[optName]
                             local isSelected = isMulti and selected[optName] or (optName == selectedSingle)
                             if isSelected then
-                                btn.BackgroundTransparency = 0.5              -- semi-transparent
-                                btn.BackgroundColor3 = Color3.fromRGB(60,60,60) -- dark grey background
-                                btn.TextColor3 = Theme.Text                   -- white text on dark grey
+                                btn.BackgroundTransparency = 0.5
+                                btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+                                btn.TextColor3 = Theme.Text
                             else
                                 btn.BackgroundTransparency = 1
                                 btn.BackgroundColor3 = Highlight
