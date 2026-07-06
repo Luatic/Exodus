@@ -1036,12 +1036,14 @@ function Exodus:Init(config)
                         local screenSize = ScreenGui.AbsoluteSize
                         
                         local maxHeight = 200
+                        local itemHeight = 24  -- each option: button height 22 + padding 2
                         local listWidth = selSize.X
+                        local actualHeight = math.min(#options * itemHeight + 8, maxHeight)  -- +8 for padding
                         
-                        ListFrame.Size = UDim2.new(0, listWidth, 0, maxHeight)
-                        
+                        ListFrame.Size = UDim2.new(0, listWidth, 0, actualHeight)
+                                        
                         local x = math.clamp(selPos.X, 4, screenSize.X - listWidth - 4)
-                        local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - maxHeight - 4)  -- fixed
+                        local y = math.clamp(selPos.Y + selSize.Y + 2, 4, screenSize.Y - actualHeight - 4)
                         
                         ListFrame.Position = UDim2.fromOffset(x, y)
                         table.insert(openDropdowns, close)
