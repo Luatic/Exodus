@@ -202,6 +202,24 @@ function Exodus:Init(config)
     corner(Main, 12)
     stroke(Main, Theme.StrokeDim, 1)
 
+    -- Game ID label – top‑right corner with padding
+    local GameIDLabel = create("TextLabel", {
+        Parent = Main,
+        BackgroundColor3 = Theme.Background, -- or a darker shade
+        BackgroundTransparency = 0.5,
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, -12, 0, 12),
+        Size = UDim2.new(0, 250, 0, 20),
+        AutomaticSize = Enum.AutomaticSize.X,
+        Font = Enum.Font.Gotham,
+        Text = "Game ID: " .. tostring(game.GameId),
+        TextColor3 = Theme.SubText,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        ZIndex = 30,
+    })
+
     local MainScale = create("UIScale", { Parent = Main, Scale = 1 })
  
     create("UIGradient", {
