@@ -444,7 +444,7 @@ function Exodus:Init(config)
         ClipsDescendants = true,   -- add this
     })
 
-    pad(PageHolder, 0, 0, 0, 14) -- bottom padding 18px, match top 18 from PageInner
+    pad(PageHolder, 0, 0, 10, 10) -- bottom padding 18px, match top 18 from PageInner
     
     -- Resize handles (no cursor changes – just drag logic)
     local function makeResizeHandle(parent, anchor, position, size)
