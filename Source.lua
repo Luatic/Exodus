@@ -788,10 +788,11 @@ function Exodus:Init(config)
                 closeAllDropdowns()
                 DropdownBlocker.Visible = false
 
-                -- Resets active layout query elements when tabs switch
+                --[[ Resets active layout query elements when tabs switch. Clear automatic.
                 if SearchBox.Text ~= "" then
                     SearchBox.Text = ""
                 end
+                --]]
 
                 -- Hide all pages (direct children of PageHolder)
                 for _, child in ipairs(PageHolder:GetChildren()) do
@@ -816,6 +817,7 @@ function Exodus:Init(config)
                 -- Show this page and highlight this tab
                 Page.Visible = true
                 Window._activeTab = Page
+                applySearch(SearchBox.Text)
                 tween(TabButton, { BackgroundColor3 = Highlight, BackgroundTransparency = 0 }, 0.2)
                 local contrast = getContrastColor(Highlight)
                 tween(TabLabel, { TextColor3 = contrast }, 0.2)
