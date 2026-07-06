@@ -412,11 +412,11 @@ function Exodus:Init(config)
         BackgroundColor3 = Highlight,
         BackgroundTransparency = 0.15,
         AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -18, 0.5, 0),
+        Position = UDim2.new(1, 0, 0.5, 0),
         Size = UDim2.new(0, 0, 0, 24),
         AutomaticSize = Enum.AutomaticSize.X,
         Font = Enum.Font.Gotham,
-        Text = "Game ID: " .. tostring(game.GameId),
+        Text = tostring(game.GameId),
         TextColor3 = getContrastColor(Highlight), -- black or white for readability
         TextSize = 11,
         TextXAlignment = Enum.TextXAlignment.Center,
